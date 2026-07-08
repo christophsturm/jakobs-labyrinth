@@ -417,7 +417,7 @@ describe("renderSvg", () => {
     expect(svg).not.toContain("<polyline");
   });
 
-  test("draws sparse maze letters, wall openings, and hides the solution line by default", () => {
+  test("draws sparse maze letters, opening arrows, and hides the solution line by default", () => {
     const puzzle = generateMazePuzzle({
       kind: "maze",
       word: "TOR",
@@ -431,8 +431,10 @@ describe("renderSvg", () => {
     const visible = renderSvg(puzzle, { showSolution: true });
 
     expect(hidden).toContain("<line");
-    expect(hidden).toContain("Eingang");
-    expect(hidden).toContain("Ausgang");
+    expect(hidden).toContain('class="maze-opening-arrow maze-opening-entrance"');
+    expect(hidden).toContain('class="maze-opening-arrow maze-opening-exit"');
+    expect(hidden).not.toContain("Eingang");
+    expect(hidden).not.toContain("Ausgang");
     expect(hidden).not.toContain("TOR</title>");
     expect(hidden).not.toContain("für TOR");
     expect(hidden).not.toContain("<polyline");
@@ -459,8 +461,8 @@ describe("renderSvg", () => {
     });
 
     expect(renderSvg(french, { showSolution: false })).toContain("Labyrinthe de lettres");
-    expect(renderSvg(french, { showSolution: false })).toContain("Entrée");
-    expect(renderSvg(french, { showSolution: false })).toContain("Sortie");
+    expect(renderSvg(french, { showSolution: false })).not.toContain("Entrée");
+    expect(renderSvg(french, { showSolution: false })).not.toContain("Sortie");
     expect(renderSvg(italian, { showSolution: true })).toContain("Cerca parole");
     expect(renderSvg(italian, { showSolution: true })).toContain("Inizio");
   });

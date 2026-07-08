@@ -243,10 +243,6 @@ type LanguageLabels = {
     start: string;
     goal: string;
   };
-  openings: {
-    entrance: string;
-    exit: string;
-  };
   wordSearchDesc: (cols: number, rows: number, difficulty: string) => string;
   mazeDesc: (cols: number, rows: number, difficulty: string) => string;
 };
@@ -307,10 +303,6 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
         start: "Start",
         goal: "Ziel",
       },
-      openings: {
-        entrance: "Eingang",
-        exit: "Ausgang",
-      },
       wordSearchDesc: (cols, rows, difficulty) =>
         `${cols} mal ${rows} Felder, Schwierigkeit ${difficulty}`,
       mazeDesc: (cols, rows, difficulty) =>
@@ -364,10 +356,6 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       endpoints: {
         start: "Start",
         goal: "Goal",
-      },
-      openings: {
-        entrance: "Entrance",
-        exit: "Exit",
       },
       wordSearchDesc: (cols, rows, difficulty) =>
         `${cols} by ${rows} cells, difficulty ${difficulty}`,
@@ -424,10 +412,6 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
         start: "Inizio",
         goal: "Fine",
       },
-      openings: {
-        entrance: "Entrata",
-        exit: "Uscita",
-      },
       wordSearchDesc: (cols, rows, difficulty) =>
         `${cols} per ${rows} celle, difficoltà ${difficulty}`,
       mazeDesc: (cols, rows, difficulty) =>
@@ -482,10 +466,6 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       endpoints: {
         start: "Début",
         goal: "Fin",
-      },
-      openings: {
-        entrance: "Entrée",
-        exit: "Sortie",
       },
       wordSearchDesc: (cols, rows, difficulty) =>
         `${cols} par ${rows} cases, difficulté ${difficulty}`,
@@ -1872,7 +1852,7 @@ function renderMazeSvg(puzzle: MazePuzzle, options: { showSolution: boolean }): 
       <desc>${escapeHtml(labels.mazeDesc(puzzle.cols, puzzle.rows, labels.difficulties[puzzle.difficulty]))}</desc>
       ${solutionLayer}
       ${cells.join("")}
-      ${renderMazeOpenings(puzzle, cell, padding, labels)}
+      ${renderMazeOpenings(puzzle, cell, padding)}
       ${renderMazeWalls(puzzle.maze, cell, padding)}
     </svg>
   `;
@@ -1983,118 +1963,114 @@ function renderEndpointMarkers(
   `;
 }
 
-function renderMazeOpenings(
-  puzzle: MazePuzzle,
-  cell: number,
-  padding: number,
-  labels: LanguageLabels,
-): string {
+function renderMazeOpenings(puzzle: MazePuzzle, cell: number, padding: number): string {
   return `
-    ${renderOpeningLabel(puzzle.entrance, labels.openings.entrance, "#f9d64a", cell, padding)}
-    ${renderOpeningLabel(puzzle.exit, labels.openings.exit, "#ef7258", cell, padding)}
+    ${renderOpeningArrow(puzzle.entrance, "entrance", cell, padding)}
+    ${renderOpeningArrow(puzzle.exit, "exit", cell, padding)}
   `;
 }
 
-function renderOpeningLabel(
+function renderOpeningArrow(
   opening: MazeOpening,
-  label: string,
-  fill: string,
+  kind: "entrance" | "exit",
   cell: number,
   padding: number,
 ): string {
-  const centerX = padding + opening.point.x * cell + cell / 2;
-  const centerY = padding + opening.point.y * cell + cell / 2;
-  const labelWidth = 52;
-  const labelHeight = 18;
-  const offset = 28;
-  const position = openingLabelPosition(
-    opening.side,
-    centerX,
-    centerY,
-    labelWidth,
-    labelHeight,
-    offset,
-  );
-  const arrow = openingArrow(opening, centerX, centerY, cell, padding);
+  const center = openingBoundaryCenter(opening, cell, padding);
+  const inward = openingInwardVector(opening.side);
+  const direction = kind === "entrance" ? inward : { dx: -inward.dx, dy: -inward.dy };
+  const fill = kind === "entrance" ? "#36a96a" : "#ef7258";
+  const startOffset = kind === "entrance" ? -34 : 18;
+  const tipOffset = kind === "entrance" ? 18 : -34;
+  const start = {
+    x: center.x + inward.dx * startOffset,
+    y: center.y + inward.dy * startOffset,
+  };
+  const tip = {
+    x: center.x + inward.dx * tipOffset,
+    y: center.y + inward.dy * tipOffset,
+  };
+  const headLength = 13;
+  const headHalf = 8;
+  const shaftEnd = {
+    x: tip.x - direction.dx * headLength,
+    y: tip.y - direction.dy * headLength,
+  };
+  const perpendicular = { x: -direction.dy, y: direction.dx };
+  const leftCorner = {
+    x: shaftEnd.x + perpendicular.x * headHalf,
+    y: shaftEnd.y + perpendicular.y * headHalf,
+  };
+  const rightCorner = {
+    x: shaftEnd.x - perpendicular.x * headHalf,
+    y: shaftEnd.y - perpendicular.y * headHalf,
+  };
+  const className = `maze-opening-arrow maze-opening-${kind}`;
 
   return `
-    <g>
-      ${arrow}
-      <rect
-        x="${position.x}"
-        y="${position.y}"
-        width="${labelWidth}"
-        height="${labelHeight}"
-        rx="4"
+    <g class="${className}">
+      <line
+        x1="${start.x}"
+        y1="${start.y}"
+        x2="${shaftEnd.x}"
+        y2="${shaftEnd.y}"
+        stroke="#171a16"
+        stroke-width="12"
+        stroke-linecap="round"
+      />
+      <line
+        x1="${start.x}"
+        y1="${start.y}"
+        x2="${shaftEnd.x}"
+        y2="${shaftEnd.y}"
+        stroke="${fill}"
+        stroke-width="8"
+        stroke-linecap="round"
+      />
+      <polygon
+        points="${tip.x},${tip.y} ${leftCorner.x},${leftCorner.y} ${rightCorner.x},${rightCorner.y}"
         fill="${fill}"
         stroke="#171a16"
-        stroke-width="1"
+        stroke-width="2"
+        stroke-linejoin="round"
       />
-      <text
-        x="${position.x + labelWidth / 2}"
-        y="${position.y + labelHeight / 2 + 0.5}"
-        text-anchor="middle"
-        dominant-baseline="middle"
-        font-size="8"
-        font-family="Avenir Next, Segoe UI, Helvetica, sans-serif"
-        font-weight="900"
-        fill="#171a16"
-      >${escapeHtml(label)}</text>
     </g>
   `;
 }
 
-function openingLabelPosition(
-  side: Direction,
-  centerX: number,
-  centerY: number,
-  labelWidth: number,
-  labelHeight: number,
-  offset: number,
-): Point {
-  if (side === "left") {
-    return { x: centerX - labelWidth - offset, y: centerY - labelHeight / 2 };
-  }
-
-  if (side === "right") {
-    return { x: centerX + offset, y: centerY - labelHeight / 2 };
-  }
-
-  if (side === "top") {
-    return { x: centerX - labelWidth / 2, y: centerY - labelHeight - offset };
-  }
-
-  return { x: centerX - labelWidth / 2, y: centerY + offset };
-}
-
-function openingArrow(
-  opening: MazeOpening,
-  centerX: number,
-  centerY: number,
-  cell: number,
-  padding: number,
-): string {
-  const tipDistance = 1;
-  const baseDistance = 14;
-  const half = 5;
+function openingBoundaryCenter(opening: MazeOpening, cell: number, padding: number): Point {
+  const centerX = padding + opening.point.x * cell + cell / 2;
+  const centerY = padding + opening.point.y * cell + cell / 2;
 
   if (opening.side === "left") {
-    const wallX = padding + opening.point.x * cell;
-    return `<polygon points="${wallX - baseDistance},${centerY - half} ${wallX - tipDistance},${centerY} ${wallX - baseDistance},${centerY + half}" fill="#171a16" />`;
+    return { x: padding + opening.point.x * cell, y: centerY };
   }
 
   if (opening.side === "right") {
-    const wallX = padding + (opening.point.x + 1) * cell;
-    return `<polygon points="${wallX + baseDistance},${centerY - half} ${wallX + tipDistance},${centerY} ${wallX + baseDistance},${centerY + half}" fill="#171a16" />`;
+    return { x: padding + (opening.point.x + 1) * cell, y: centerY };
   }
 
   if (opening.side === "top") {
-    const wallY = padding + opening.point.y * cell;
-    return `<polygon points="${centerX - half},${wallY - baseDistance} ${centerX},${wallY - tipDistance} ${centerX + half},${wallY - baseDistance}" fill="#171a16" />`;
+    return { x: centerX, y: padding + opening.point.y * cell };
   }
 
-  const wallY = padding + (opening.point.y + 1) * cell;
-  return `<polygon points="${centerX - half},${wallY + baseDistance} ${centerX},${wallY + tipDistance} ${centerX + half},${wallY + baseDistance}" fill="#171a16" />`;
+  return { x: centerX, y: padding + (opening.point.y + 1) * cell };
+}
+
+function openingInwardVector(side: Direction): Pick<DirectionVector, "dx" | "dy"> {
+  if (side === "left") {
+    return { dx: 1, dy: 0 };
+  }
+
+  if (side === "right") {
+    return { dx: -1, dy: 0 };
+  }
+
+  if (side === "top") {
+    return { dx: 0, dy: 1 };
+  }
+
+  return { dx: 0, dy: -1 };
 }
 
 function renderEndpoint(
