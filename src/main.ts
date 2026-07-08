@@ -96,6 +96,7 @@ export type PuzzleUrlSettings = {
   difficulty?: Difficulty;
   mazeLetterAmount?: MazeLetterAmount;
   seed?: number;
+  savedSeeds?: number[];
 };
 
 export type CompletePuzzleUrlSettings = {
@@ -105,6 +106,7 @@ export type CompletePuzzleUrlSettings = {
   difficulty: Difficulty;
   mazeLetterAmount: MazeLetterAmount;
   seed: number;
+  savedSeeds?: number[] | undefined;
 };
 
 export type PuzzleUrlParseResult = {
@@ -142,6 +144,7 @@ const urlParamNames = {
   difficulty: "difficulty",
   mazeLetterAmount: "letters",
   seed: "seed",
+  savedSeeds: "saved",
 } as const;
 
 type _PuzzleKindOptionsMatchInternalType = AssertType<
@@ -162,6 +165,11 @@ const urlWordSchema = v.pipe(
   v.transform((value) => value.trim()),
   v.check((value) => value.length > 0, "Word must not be empty."),
 );
+const urlEncodedWordReadSchema = v.pipe(
+  v.string(),
+  v.transform((value) => decodeUrlWordParam(value) ?? value),
+  urlWordSchema,
+);
 const urlColsReadSchema = v.pipe(
   v.string(),
   v.check(isUrlSizeOptionParam, "Unsupported puzzle size."),
@@ -181,6 +189,22 @@ const urlSeedReadSchema = v.pipe(
   v.maxValue(maxUrlSeed),
 );
 const urlSeedWriteSchema = v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(maxUrlSeed));
+const urlSavedSeedsReadSchema = v.pipe(
+  v.string(),
+  v.check((value) => value.length > 0, "Saved seeds must not be empty."),
+  v.transform((value) => value.split(",")),
+  v.check(
+    (values) => values.every((value) => /^\d+$/.test(value)),
+    "Saved seeds must be positive integers.",
+  ),
+  v.transform((values) => values.map((value) => Number(value))),
+  v.check(
+    (values) =>
+      values.every((value) => Number.isInteger(value) && value >= 1 && value <= maxUrlSeed),
+    "Saved seeds must fit in the supported seed range.",
+  ),
+);
+const urlSavedSeedsWriteSchema = v.optional(v.array(urlSeedWriteSchema));
 const completePuzzleUrlSettingsSchema = v.object({
   kind: puzzleKindSchema,
   word: urlWordSchema,
@@ -188,6 +212,7 @@ const completePuzzleUrlSettingsSchema = v.object({
   difficulty: difficultySchema,
   mazeLetterAmount: mazeLetterAmountSchema,
   seed: urlSeedWriteSchema,
+  savedSeeds: urlSavedSeedsWriteSchema,
 });
 type _PuzzleKindSchemaMatchesInternalType = AssertType<
   IsExactType<v.InferOutput<typeof puzzleKindSchema>, PuzzleKind>
@@ -221,9 +246,12 @@ type LanguageLabels = {
   difficultyField: string;
   mazeLetterAmountField: string;
   generate: string;
+  useWord: string;
+  saveAndNext: string;
   showSolution: string;
   hideSolution: string;
   print: string;
+  printCount: (count: number) => string;
   name: string;
   date: string;
   wordMeta: string;
@@ -239,10 +267,6 @@ type LanguageLabels = {
   puzzleKinds: Record<PuzzleKind, string>;
   difficulties: Record<Difficulty, string>;
   mazeLetterAmounts: Record<MazeLetterAmount, string>;
-  endpoints: {
-    start: string;
-    goal: string;
-  };
   wordSearchDesc: (cols: number, rows: number, difficulty: string) => string;
   mazeDesc: (cols: number, rows: number, difficulty: string) => string;
 };
@@ -269,9 +293,12 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       difficultyField: "Schwierigkeit",
       mazeLetterAmountField: "Buchstabenmenge",
       generate: "Neu erzeugen",
+      useWord: "Wort übernehmen",
+      saveAndNext: "Speichern und noch eins",
       showSolution: "Lösung anzeigen",
       hideSolution: "Lösung verstecken",
       print: "Drucken",
+      printCount: (count) => `Drucken (${count})`,
       name: "Name",
       date: "Datum",
       wordMeta: "Wort",
@@ -299,10 +326,6 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
         normal: "Mehr",
         many: "Viele",
       },
-      endpoints: {
-        start: "Start",
-        goal: "Ziel",
-      },
       wordSearchDesc: (cols, rows, difficulty) =>
         `${cols} mal ${rows} Felder, Schwierigkeit ${difficulty}`,
       mazeDesc: (cols, rows, difficulty) =>
@@ -324,9 +347,12 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       difficultyField: "Difficulty",
       mazeLetterAmountField: "Letter amount",
       generate: "Generate",
+      useWord: "Use word",
+      saveAndNext: "Save and another",
       showSolution: "Show solution",
       hideSolution: "Hide solution",
       print: "Print",
+      printCount: (count) => `Print (${count})`,
       name: "Name",
       date: "Date",
       wordMeta: "Word",
@@ -353,10 +379,6 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
         normal: "More",
         many: "Many",
       },
-      endpoints: {
-        start: "Start",
-        goal: "Goal",
-      },
       wordSearchDesc: (cols, rows, difficulty) =>
         `${cols} by ${rows} cells, difficulty ${difficulty}`,
       mazeDesc: (cols, rows, difficulty) =>
@@ -378,9 +400,12 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       difficultyField: "Difficoltà",
       mazeLetterAmountField: "Quantità lettere",
       generate: "Genera",
+      useWord: "Usa parola",
+      saveAndNext: "Salva e un altro",
       showSolution: "Mostra soluzione",
       hideSolution: "Nascondi soluzione",
       print: "Stampa",
+      printCount: (count) => `Stampa (${count})`,
       name: "Nome",
       date: "Data",
       wordMeta: "Parola",
@@ -408,10 +433,6 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
         normal: "Normale",
         many: "Molte",
       },
-      endpoints: {
-        start: "Inizio",
-        goal: "Fine",
-      },
       wordSearchDesc: (cols, rows, difficulty) =>
         `${cols} per ${rows} celle, difficoltà ${difficulty}`,
       mazeDesc: (cols, rows, difficulty) =>
@@ -433,9 +454,12 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       difficultyField: "Difficulté",
       mazeLetterAmountField: "Quantité de lettres",
       generate: "Générer",
+      useWord: "Utiliser le mot",
+      saveAndNext: "Enregistrer et un autre",
       showSolution: "Afficher solution",
       hideSolution: "Masquer solution",
       print: "Imprimer",
+      printCount: (count) => `Imprimer (${count})`,
       name: "Nom",
       date: "Date",
       wordMeta: "Mot",
@@ -462,10 +486,6 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
         few: "Peu",
         normal: "Plus",
         many: "Beaucoup",
-      },
-      endpoints: {
-        start: "Début",
-        goal: "Fin",
       },
       wordSearchDesc: (cols, rows, difficulty) =>
         `${cols} par ${rows} cases, difficulté ${difficulty}`,
@@ -523,7 +543,7 @@ export function parsePuzzleSettingsFromUrlWithIssues(
   const settings: PuzzleUrlSettings = {};
   const invalidParams: PuzzleUrlInvalidParam[] = [];
   const kind = readUrlParam(params, urlParamNames.kind, puzzleKindSchema, invalidParams);
-  const word = readUrlParam(params, urlParamNames.word, urlWordSchema, invalidParams);
+  const word = readUrlParam(params, urlParamNames.word, urlEncodedWordReadSchema, invalidParams);
   const cols = readUrlParam(params, urlParamNames.cols, urlColsReadSchema, invalidParams);
   const difficulty = readUrlParam(
     params,
@@ -538,6 +558,12 @@ export function parsePuzzleSettingsFromUrlWithIssues(
     invalidParams,
   );
   const seed = readUrlParam(params, urlParamNames.seed, urlSeedReadSchema, invalidParams);
+  const savedSeeds = readUrlParam(
+    params,
+    urlParamNames.savedSeeds,
+    urlSavedSeedsReadSchema,
+    invalidParams,
+  );
 
   if (kind) {
     settings.kind = kind;
@@ -563,6 +589,10 @@ export function parsePuzzleSettingsFromUrlWithIssues(
     settings.seed = seed;
   }
 
+  if (savedSeeds && savedSeeds.length > 0) {
+    settings.savedSeeds = savedSeeds;
+  }
+
   return { settings, invalidParams };
 }
 
@@ -571,13 +601,63 @@ export function createPuzzleUrlSearchParams(settings: CompletePuzzleUrlSettings)
   const params = new URLSearchParams();
 
   params.set(urlParamNames.kind, validSettings.kind);
-  params.set(urlParamNames.word, validSettings.word);
+  params.set(urlParamNames.word, encodeUrlWord(validSettings.word));
   params.set(urlParamNames.cols, String(validSettings.cols));
   params.set(urlParamNames.difficulty, validSettings.difficulty);
   params.set(urlParamNames.mazeLetterAmount, validSettings.mazeLetterAmount);
   params.set(urlParamNames.seed, String(validSettings.seed));
 
+  if (validSettings.savedSeeds && validSettings.savedSeeds.length > 0) {
+    params.set(urlParamNames.savedSeeds, validSettings.savedSeeds.join(","));
+  }
+
   return params;
+}
+
+function encodeUrlWord(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/g, "");
+}
+
+function decodeUrlWordParam(value: string): string | null {
+  const candidate = value.trim();
+
+  if (!/^[A-Za-z0-9_-]+={0,2}$/.test(candidate)) {
+    return null;
+  }
+
+  const base64 = candidate.replaceAll("-", "+").replaceAll("_", "/");
+  const paddedBase64 = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
+
+  try {
+    const binary = atob(paddedBase64);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    const decoded = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+
+    return looksLikeDecodedUrlWord(decoded) ? decoded : null;
+  } catch {
+    return null;
+  }
+}
+
+function looksLikeDecodedUrlWord(value: string): boolean {
+  const trimmed = value.trim();
+
+  for (const char of trimmed) {
+    const codePoint = char.codePointAt(0) ?? 0;
+
+    if (codePoint <= 0x1f || codePoint === 0x7f) {
+      return false;
+    }
+  }
+
+  return trimmed.length > 0 && /\p{L}/u.test(trimmed);
 }
 
 export function makeSeed(input = `${Date.now()}:${Math.random()}`): number {
@@ -1757,8 +1837,7 @@ function renderWordSearchSvg(puzzle: WordSearchPuzzle, options: { showSolution: 
         7,
         0.58,
         "solution-layer print-hidden-solution",
-      )}
-       ${renderEndpointMarkers(puzzle.solutionPath, cell, padding, labels)}`
+      )}`
     : "";
 
   return `
@@ -1944,25 +2023,6 @@ function addWallLine(
   lines.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" />`);
 }
 
-function renderEndpointMarkers(
-  path: Point[],
-  cell: number,
-  padding: number,
-  labels: LanguageLabels,
-): string {
-  const start = path[0];
-  const end = path[path.length - 1];
-
-  if (!start || !end) {
-    return "";
-  }
-
-  return `
-    ${renderEndpoint(start, labels.endpoints.start, "#f9d64a", cell, padding, "solution-marker print-hidden-solution")}
-    ${renderEndpoint(end, labels.endpoints.goal, "#ef7258", cell, padding, "solution-marker print-hidden-solution")}
-  `;
-}
-
 function renderMazeOpenings(puzzle: MazePuzzle, cell: number, padding: number): string {
   return `
     ${renderOpeningArrow(puzzle.entrance, "entrance", cell, padding)}
@@ -2077,35 +2137,6 @@ function openingInwardVector(side: Direction): Pick<DirectionVector, "dx" | "dy"
   return { dx: 0, dy: -1 };
 }
 
-function renderEndpoint(
-  point: Point,
-  label: string,
-  fill: string,
-  cell: number,
-  padding: number,
-  className?: string,
-): string {
-  const centerX = padding + point.x * cell + cell / 2;
-  const centerY = padding + point.y * cell + cell / 2;
-  const classAttribute = className ? `class="${escapeHtml(className)}"` : "";
-
-  return `
-    <g ${classAttribute}>
-      <circle cx="${centerX}" cy="${centerY}" r="16" fill="${fill}" stroke="#161815" stroke-width="1.4" />
-      <text
-        x="${centerX}"
-        y="${centerY + 1}"
-        text-anchor="middle"
-        dominant-baseline="middle"
-        font-size="7"
-        font-family="Avenir Next, Segoe UI, Helvetica, sans-serif"
-        font-weight="900"
-        fill="#161815"
-      >${escapeHtml(label)}</text>
-    </g>
-  `;
-}
-
 function pointFromKey(key: string): Point {
   const [xRaw, yRaw] = key.split(",");
   const x = Number(xRaw);
@@ -2144,6 +2175,7 @@ function bindApp(): void {
   const mazeLetterAmountField = byId<HTMLLabelElement>("maze-letter-amount-field");
   const mazeLetterAmountSelect = byId<HTMLSelectElement>("maze-letter-amount");
   const generateButton = byId<HTMLButtonElement>("generate");
+  const saveNextButton = byId<HTMLButtonElement>("save-next");
   const toggleSolutionButton = byId<HTMLButtonElement>("toggle-solution");
   const printButton = byId<HTMLButtonElement>("print");
   const worksheet = byId<HTMLDivElement>("worksheet");
@@ -2152,9 +2184,12 @@ function bindApp(): void {
   const printName = byId<HTMLSpanElement>("print-name");
   const printDate = byId<HTMLSpanElement>("print-date");
   const answerBoxes = byId<HTMLDivElement>("answer-boxes");
+  const printStack = byId<HTMLDivElement>("print-stack");
   const status = byId<HTMLParagraphElement>("status");
 
   let currentPuzzle: Puzzle | null = null;
+  let savedPuzzles: Puzzle[] = [];
+  let wordDirty = false;
   let showSolution = false;
   const initialUrlSettingsResult = parsePuzzleSettingsFromUrlWithIssues(window.location.search);
   const initialUrlSettings = initialUrlSettingsResult.settings;
@@ -2188,6 +2223,65 @@ function bindApp(): void {
     renderAnswerBoxes(currentPuzzle, answerBoxes);
   }
 
+  function printablePuzzles(): Puzzle[] {
+    return currentPuzzle ? [...savedPuzzles, currentPuzzle] : [...savedPuzzles];
+  }
+
+  function savedSeeds(): number[] {
+    return savedPuzzles.map((puzzle) => puzzle.seed);
+  }
+
+  function updatePrintStack(): void {
+    printStack.innerHTML = renderPrintablePuzzlesHtml(printablePuzzles());
+  }
+
+  function updateActionButtons(): void {
+    const labels = currentLabels();
+    const printCount = printablePuzzles().length;
+
+    generateButton.textContent = wordDirty ? labels.useWord : labels.generate;
+    generateButton.classList.toggle("needs-action", wordDirty);
+    saveNextButton.textContent = labels.saveAndNext;
+    printButton.textContent = printCount > 1 ? labels.printCount(printCount) : labels.print;
+  }
+
+  function updateWordDirtyState(): void {
+    if (!currentPuzzle) {
+      wordDirty = false;
+      updateActionButtons();
+      return;
+    }
+
+    const word = normalizeWord(wordInput.value, currentLanguage());
+    wordDirty = word !== currentPuzzle.word;
+    updateActionButtons();
+  }
+
+  function puzzleOptionsFromControls(seed?: number): GeneratePuzzleOptions {
+    const puzzleOptions: GeneratePuzzleOptions = {
+      kind: parsePuzzleKind(kindSelect.value),
+      language: currentLanguage(),
+      word: wordInput.value,
+      cols: Number(sizeSelect.value),
+      difficulty: parseDifficulty(difficultySelect.value),
+      mazeLetterAmount: currentMazeLetterAmount(),
+    };
+
+    if (seed !== undefined) {
+      puzzleOptions.seed = seed;
+    }
+
+    return puzzleOptions;
+  }
+
+  function generatePuzzleFromControls(seed?: number): Puzzle {
+    return generatePuzzle(puzzleOptionsFromControls(seed));
+  }
+
+  function replaceSavedPuzzlesFromSeeds(seeds: readonly number[]): void {
+    savedPuzzles = seeds.map((seed) => generatePuzzleFromControls(seed));
+  }
+
   function regenerate(
     options: {
       seed?: number;
@@ -2204,20 +2298,9 @@ function bindApp(): void {
 
     try {
       const wordFeedback = normalizeWordWithFeedback(wordInput.value, language);
-      const puzzleOptions: GeneratePuzzleOptions = {
-        kind: parsePuzzleKind(kindSelect.value),
-        language,
-        word: wordInput.value,
-        cols: Number(sizeSelect.value),
-        difficulty: parseDifficulty(difficultySelect.value),
-        mazeLetterAmount: currentMazeLetterAmount(),
-      };
 
-      if (options.seed !== undefined) {
-        puzzleOptions.seed = options.seed;
-      }
-
-      currentPuzzle = generatePuzzle(puzzleOptions);
+      currentPuzzle = generatePuzzleFromControls(options.seed);
+      wordDirty = false;
 
       const invalidUrlParams = options.invalidUrlParams ?? [];
       const messages = [
@@ -2230,19 +2313,23 @@ function bindApp(): void {
       ];
       status.textContent = messages.join(" ");
       renderCurrentPuzzle();
+      updatePrintStack();
 
       if (options.updateUrl ?? true) {
         updatePuzzleUrl(currentPuzzle);
       }
     } catch (error) {
       currentPuzzle = null;
+      wordDirty = true;
       worksheet.textContent = "";
       worksheetMeta.textContent = "";
       answerBoxes.hidden = true;
       answerBoxes.textContent = "";
       printTitle.textContent = labels.appTitle;
       status.textContent = error instanceof Error ? error.message : "Fehler beim Erzeugen.";
+      updatePrintStack();
     }
+    updateActionButtons();
   }
 
   function updateVariantControls(): void {
@@ -2281,6 +2368,7 @@ function bindApp(): void {
       difficulty: puzzle.difficulty,
       mazeLetterAmount: currentMazeLetterAmount(),
       seed: puzzle.seed,
+      savedSeeds: savedSeeds(),
     }).toString();
     window.history.replaceState(null, "", url.toString());
   }
@@ -2299,6 +2387,7 @@ function bindApp(): void {
     difficultyLabel.textContent = labels.difficultyField;
     mazeLetterAmountLabel.textContent = labels.mazeLetterAmountField;
     generateButton.textContent = labels.generate;
+    saveNextButton.textContent = labels.saveAndNext;
     printButton.textContent = labels.print;
     printName.textContent = labels.name;
     printDate.textContent = labels.date;
@@ -2312,10 +2401,39 @@ function bindApp(): void {
     setOptionText(mazeLetterAmountSelect, "normal", labels.mazeLetterAmounts.normal);
     setOptionText(mazeLetterAmountSelect, "many", labels.mazeLetterAmounts.many);
     toggleSolutionButton.textContent = showSolution ? labels.hideSolution : labels.showSolution;
+    updatePrintStack();
+    updateActionButtons();
+  }
+
+  function ensureCurrentPuzzle(): boolean {
+    if (wordDirty) {
+      savedPuzzles = [];
+    }
+
+    if (wordDirty || !currentPuzzle) {
+      regenerate();
+    }
+
+    return Boolean(currentPuzzle);
+  }
+
+  function saveCurrentAndGenerateNext(): void {
+    if (!ensureCurrentPuzzle() || !currentPuzzle) {
+      return;
+    }
+
+    savedPuzzles = [...savedPuzzles, currentPuzzle];
+    regenerate();
+  }
+
+  function regenerateAfterSettingsChange(): void {
+    savedPuzzles = [];
+    regenerate();
   }
 
   languageSelect.addEventListener("change", () => {
     const seed = currentPuzzle?.seed;
+    const previousSavedSeeds = savedSeeds();
 
     updateLanguageText();
     if (seed === undefined) {
@@ -2323,14 +2441,33 @@ function bindApp(): void {
     } else {
       regenerate({ seed });
     }
+
+    if (currentPuzzle) {
+      replaceSavedPuzzlesFromSeeds(previousSavedSeeds);
+      updatePrintStack();
+      updateActionButtons();
+      updatePuzzleUrl(currentPuzzle);
+    }
   });
-  kindSelect.addEventListener("change", () => regenerate());
-  sizeSelect.addEventListener("change", () => regenerate());
-  difficultySelect.addEventListener("change", () => regenerate());
-  mazeLetterAmountSelect.addEventListener("change", () => regenerate());
-  generateButton.addEventListener("click", () => regenerate());
+  kindSelect.addEventListener("change", regenerateAfterSettingsChange);
+  sizeSelect.addEventListener("change", regenerateAfterSettingsChange);
+  difficultySelect.addEventListener("change", regenerateAfterSettingsChange);
+  mazeLetterAmountSelect.addEventListener("change", regenerateAfterSettingsChange);
+  generateButton.addEventListener("click", () => {
+    if (wordDirty) {
+      savedPuzzles = [];
+    }
+
+    regenerate();
+  });
+  saveNextButton.addEventListener("click", saveCurrentAndGenerateNext);
+  wordInput.addEventListener("input", updateWordDirtyState);
   wordInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
+      if (wordDirty) {
+        savedPuzzles = [];
+      }
+
       regenerate();
     }
   });
@@ -2344,7 +2481,12 @@ function bindApp(): void {
     toggleSolutionButton.textContent = showSolution ? labels.hideSolution : labels.showSolution;
     renderCurrentPuzzle();
   });
-  printButton.addEventListener("click", () => window.print());
+  printButton.addEventListener("click", () => {
+    if (ensureCurrentPuzzle()) {
+      updatePrintStack();
+      window.print();
+    }
+  });
 
   updateLanguageText();
   applyUrlSettings(initialUrlSettings);
@@ -2356,6 +2498,13 @@ function bindApp(): void {
       seed: initialUrlSettings.seed,
       invalidUrlParams: initialUrlSettingsResult.invalidParams,
     });
+  }
+
+  if (currentPuzzle && initialUrlSettings.savedSeeds) {
+    replaceSavedPuzzlesFromSeeds(initialUrlSettings.savedSeeds);
+    updatePrintStack();
+    updateActionButtons();
+    updatePuzzleUrl(currentPuzzle);
   }
 }
 
@@ -2384,6 +2533,7 @@ function formatInvalidUrlParams(
     [urlParamNames.difficulty]: labels.difficultyField,
     [urlParamNames.mazeLetterAmount]: labels.mazeLetterAmountField,
     [urlParamNames.seed]: "Seed",
+    [urlParamNames.savedSeeds]: "Gespeicherte Seeds",
   };
 
   return invalidParams
@@ -2450,6 +2600,30 @@ function renderWorksheetMeta(puzzle: Puzzle, title: string): string {
   }
 
   return `${base} · ${labels.wordMeta}: ${puzzle.word}`;
+}
+
+export function renderPrintablePuzzlesHtml(puzzles: readonly Puzzle[]): string {
+  return puzzles
+    .map((puzzle) => {
+      const labels = languageConfigs[puzzle.language].labels;
+      const title = labels.puzzleKinds[puzzle.kind];
+
+      return `
+        <section class="print-page">
+          <header class="sheet-header">
+            <h1 class="print-title">${escapeHtml(title)}</h1>
+            <div class="worksheet-meta">${escapeHtml(renderWorksheetMeta(puzzle, title))}</div>
+          </header>
+          <div class="print-fields" aria-hidden="true">
+            <span>${escapeHtml(labels.name)}</span>
+            <span>${escapeHtml(labels.date)}</span>
+          </div>
+          <div class="print-worksheet">${renderSvg(puzzle, { showSolution: false })}</div>
+          <div class="answer-boxes" aria-hidden="true">${renderAnswerBoxesHtml(puzzle)}</div>
+        </section>
+      `;
+    })
+    .join("");
 }
 
 function renderAnswerBoxes(puzzle: Puzzle, container: HTMLDivElement): void {

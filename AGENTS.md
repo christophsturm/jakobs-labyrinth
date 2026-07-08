@@ -8,7 +8,7 @@ Produkt soll eine einzelne HTML-Datei bleiben: `dist/index.html`.
 ## Arbeitsweise
 
 - Paketmanager: `pnpm`.
-- Vor Änderungen vorhandene Muster in `index.html`, `main.ts` und
+- Vor Änderungen vorhandene Muster in `src/index.html`, `src/main.ts` und
   `vite.config.ts` übernehmen.
 - `dist/` nicht manuell editieren. Änderungen gehören in die Quellen und werden
   mit `pnpm build` erzeugt.

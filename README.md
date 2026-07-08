@@ -4,6 +4,9 @@ Ein kleines Browser-Tool zum Erzeugen und Drucken von Buchstabenrätseln. Die
 Entwicklung läuft mit Vite und TypeScript; der Produktionsbuild erzeugt eine
 einzige, self-contained HTML-Datei.
 
+Die Quellen liegen unter `src/`. `src/index.html` ist der Vite-Einstiegspunkt
+und wird nicht direkt im Browser geöffnet; lokal läuft die App über `pnpm dev`.
+
 Es gibt zwei Varianten:
 
 - `Labyrinth`: ein echtes Labyrinth mit Mauern, Eingang und Ausgang. Nur an

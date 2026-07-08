@@ -14,12 +14,16 @@ import {
   parsePuzzleSettingsFromUrl,
   parsePuzzleSettingsFromUrlWithIssues,
   renderAnswerBoxesHtml,
+  renderPrintablePuzzlesHtml,
   renderSvg,
   type MazePuzzle,
   type Point,
   type PuzzleLanguage,
   type WordSearchPuzzle,
 } from "./main";
+
+const packageJsonFile = new URL("../package.json", import.meta.url);
+const sourceIndexHtmlFile = new URL("index.html", import.meta.url);
 
 describe("normalizeWord", () => {
   test("keeps German uppercase letters and removes separators", () => {
@@ -77,17 +81,20 @@ describe("puzzle URL settings", () => {
       difficulty: "medium",
       mazeLetterAmount: "many",
       seed: 4321,
+      savedSeeds: [111, 222],
     });
 
     expect(Object.fromEntries(params)).toEqual({
       kind: "maze",
-      word: "DRACHE",
+      word: "RFJBQ0hF",
       size: "10",
       difficulty: "medium",
       letters: "many",
       seed: "4321",
+      saved: "111,222",
     });
     expect(params.has("language")).toBe(false);
+    expect(params.toString()).not.toContain("DRACHE");
     expect(parsePuzzleSettingsFromUrl(params)).toEqual({
       kind: "maze",
       word: "DRACHE",
@@ -95,6 +102,7 @@ describe("puzzle URL settings", () => {
       difficulty: "medium",
       mazeLetterAmount: "many",
       seed: 4321,
+      savedSeeds: [111, 222],
     });
   });
 
@@ -109,12 +117,18 @@ describe("puzzle URL settings", () => {
       cols: 8,
       seed: 4321,
     });
+    expect(parsePuzzleSettingsFromUrl("?kind=maze&word=SCHLUMPF&size=10&seed=4321")).toEqual({
+      kind: "maze",
+      word: "SCHLUMPF",
+      cols: 10,
+      seed: 4321,
+    });
   });
 
   test("reports invalid known URL parameters while preserving valid ones", () => {
     expect(
       parsePuzzleSettingsFromUrlWithIssues(
-        "?kind=nope&word=DRACHE&size=999&difficulty=medium&letters=all&seed=4321&language=en",
+        "?kind=nope&word=DRACHE&size=999&difficulty=medium&letters=all&seed=4321&saved=1,nope&language=en",
       ),
     ).toEqual({
       settings: {
@@ -126,6 +140,7 @@ describe("puzzle URL settings", () => {
         { name: "kind", value: "nope" },
         { name: "size", value: "999" },
         { name: "letters", value: "all" },
+        { name: "saved", value: "1,nope" },
       ],
     });
     expect(parsePuzzleSettingsFromUrlWithIssues("?language=fr&theme=dark")).toEqual({
@@ -136,7 +151,7 @@ describe("puzzle URL settings", () => {
 
   test("reproduces a maze from parsed URL settings", () => {
     const settings = parsePuzzleSettingsFromUrl(
-      "?kind=maze&word=DRACHE&size=10&difficulty=medium&letters=normal&seed=4321",
+      "?kind=maze&word=RFJBQ0hF&size=10&difficulty=medium&letters=normal&seed=4321",
     );
 
     if (
@@ -184,6 +199,7 @@ describe("puzzle URL settings", () => {
 
     expect(() => createPuzzleUrlSearchParams({ ...base, cols: 6 })).toThrow();
     expect(() => createPuzzleUrlSearchParams({ ...base, seed: 0 })).toThrow();
+    expect(() => createPuzzleUrlSearchParams({ ...base, savedSeeds: [1, 0] })).toThrow();
   });
 });
 
@@ -467,7 +483,9 @@ describe("renderSvg", () => {
     expect(renderSvg(french, { showSolution: false })).not.toContain("Entrée");
     expect(renderSvg(french, { showSolution: false })).not.toContain("Sortie");
     expect(renderSvg(italian, { showSolution: true })).toContain("Cerca parole");
-    expect(renderSvg(italian, { showSolution: true })).toContain("Inizio");
+    expect(renderSvg(italian, { showSolution: true })).toContain("<polyline");
+    expect(renderSvg(italian, { showSolution: true })).not.toContain("Inizio");
+    expect(renderSvg(italian, { showSolution: true })).not.toContain("Fine");
   });
 
   test("marks maze solution-only SVG elements so print CSS can hide them", () => {
@@ -521,9 +539,34 @@ describe("renderAnswerBoxesHtml", () => {
   });
 });
 
+describe("renderPrintablePuzzlesHtml", () => {
+  test("renders multiple printable pages without visible maze solutions", () => {
+    const first = generateMazePuzzle({
+      kind: "maze",
+      word: "DRACHE",
+      cols: 10,
+      difficulty: "medium",
+      seed: 4321,
+    });
+    const second = generateMazePuzzle({
+      kind: "maze",
+      word: "Gargamelschlumpf",
+      cols: 10,
+      difficulty: "easy",
+      seed: 14,
+    });
+
+    const html = renderPrintablePuzzlesHtml([first, second]);
+
+    expect(html.match(/class="print-page"/g)).toHaveLength(2);
+    expect(html).not.toContain("<polyline");
+    expect(html.match(/class="answer-box"/g)).toHaveLength(first.word.length + second.word.length);
+  });
+});
+
 describe("project configuration", () => {
   test("formatter scripts scan the project instead of enumerating today's files", () => {
-    const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
+    const packageJson = JSON.parse(readFileSync(packageJsonFile, "utf8")) as {
       scripts: Record<string, string>;
     };
 
@@ -532,14 +575,14 @@ describe("project configuration", () => {
   });
 
   test("print CSS hides SVG solution layers", () => {
-    const html = readFileSync("index.html", "utf8");
+    const html = readFileSync(sourceIndexHtmlFile, "utf8");
 
     expect(html).toContain(".print-hidden-solution");
     expect(html).toMatch(/@media print[\s\S]*\.print-hidden-solution[\s\S]*display:\s*none/);
   });
 
   test("includes a language selector with the supported languages", () => {
-    const html = readFileSync("index.html", "utf8");
+    const html = readFileSync(sourceIndexHtmlFile, "utf8");
 
     expect(html).toContain('select id="language"');
     expect(html).toContain('value="en"');
@@ -548,7 +591,7 @@ describe("project configuration", () => {
   });
 
   test("keeps sidebar controls shrinkable after long localized labels", () => {
-    const html = readFileSync("index.html", "utf8");
+    const html = readFileSync(sourceIndexHtmlFile, "utf8");
 
     expect(html).toMatch(/label\s*\{[\s\S]*min-width:\s*0/);
     expect(html).toMatch(/input,\s*select\s*\{[\s\S]*min-width:\s*0/);

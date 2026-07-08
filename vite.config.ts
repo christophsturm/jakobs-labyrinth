@@ -74,8 +74,9 @@ function singleFileHtml(): Plugin {
 
 export default defineConfig({
   base: "./",
+  root: "src",
   build: {
-    outDir: "dist",
+    outDir: "../dist",
     emptyOutDir: true,
     sourcemap: false,
     cssCodeSplit: false,

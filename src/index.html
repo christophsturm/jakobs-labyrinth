@@ -130,6 +130,14 @@
         border-color: #556357;
       }
 
+      button.needs-action {
+        background: #ffe16a;
+        border-color: #fff3ad;
+        box-shadow:
+          0 0 0 3px rgb(249 214 74 / 28%),
+          0 8px 18px rgb(249 214 74 / 22%);
+      }
+
       button:hover {
         filter: brightness(1.04);
       }
@@ -187,6 +195,10 @@
         display: none;
       }
 
+      .print-stack {
+        display: none;
+      }
+
       #worksheet {
         width: 100%;
         overflow: auto;
@@ -225,21 +237,26 @@
         }
 
         .app {
-          display: block;
-          min-height: auto;
-          padding: 0;
-        }
-
-        .controls {
           display: none;
         }
 
-        .worksheet {
+        .print-stack {
+          display: block;
+        }
+
+        .print-page {
           padding: 0;
           background: #fff;
           border: 0;
           border-radius: 0;
           box-shadow: none;
+          break-after: page;
+          page-break-after: always;
+        }
+
+        .print-page:last-child {
+          break-after: auto;
+          page-break-after: auto;
         }
 
         .sheet-header {
@@ -303,11 +320,8 @@
           display: none;
         }
 
-        #worksheet {
-          overflow: visible;
-        }
-
-        #worksheet svg {
+        .print-page svg {
+          display: block;
           width: 100%;
           max-height: 228mm;
         }
@@ -374,6 +388,7 @@
 
         <div class="button-row">
           <button id="generate" type="button">Neu erzeugen</button>
+          <button id="save-next" class="secondary" type="button">Speichern und noch eins</button>
           <button id="toggle-solution" class="secondary" type="button">Lösung anzeigen</button>
           <button id="print" class="secondary" type="button">Drucken</button>
         </div>
@@ -394,6 +409,7 @@
         <div id="answer-boxes" class="answer-boxes" aria-hidden="true"></div>
       </main>
     </div>
+    <div id="print-stack" class="print-stack" aria-hidden="true"></div>
 
     <script type="module" src="/main.ts"></script>
   </body>
