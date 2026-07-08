@@ -1,0 +1,27 @@
+{
+  "name": "buchstabenlabyrinth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "typecheck": "tsgo --noEmit",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt index.html main.ts main.test.ts vite.config.ts tsconfig.json package.json .oxlintrc.json .oxfmtrc.json README.md AGENTS.md",
+    "fmt:check": "oxfmt --check index.html main.ts main.test.ts vite.config.ts tsconfig.json package.json .oxlintrc.json .oxfmtrc.json README.md AGENTS.md",
+    "test": "vitest run",
+    "check": "pnpm fmt:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "@typescript/native-preview": "7.0.0-dev.20260707.2",
+    "oxfmt": "^0.58.0",
+    "oxlint": "^1.73.0",
+    "vite": "^8.1.3",
+    "vitest": "^4.1.10"
+  },
+  "packageManager": "pnpm@11.7.0"
+}
