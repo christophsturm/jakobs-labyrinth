@@ -263,8 +263,8 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
     alphabet,
     labels: {
       htmlLang: "de",
-      appTitle: "Buchstabenlabyrinth",
-      screenTitle: "Buchstaben\u00adlabyrinth",
+      appTitle: "Jakobs Labyrinth Drucker",
+      screenTitle: "Jakobs Labyrinth Drucker",
       controlsLabel: "Einstellungen",
       languageField: "Sprache",
       kindField: "Variante",
@@ -290,7 +290,7 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       wordTooLongMaze: "Das Wort ist zu lang für dieses Labyrinth.",
       mazeGenerationFailed: "Das Labyrinth konnte nicht erzeugt werden.",
       puzzleKinds: {
-        maze: "Buchstabenlabyrinth",
+        maze: "Labyrinth",
         wordSearch: "Wortsuchbild",
       },
       difficulties: {
@@ -322,8 +322,8 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
     alphabet: baseAlphabet,
     labels: {
       htmlLang: "en",
-      appTitle: "Letter Maze",
-      screenTitle: "Letter Maze",
+      appTitle: "Jakob's Maze Printer",
+      screenTitle: "Jakob's Maze Printer",
       controlsLabel: "Settings",
       languageField: "Language",
       kindField: "Puzzle type",
@@ -380,8 +380,8 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
     alphabet: baseAlphabet,
     labels: {
       htmlLang: "it",
-      appTitle: "Labirinto di lettere",
-      screenTitle: "Labirinto di lettere",
+      appTitle: "Stampante per labirinti di Jakob",
+      screenTitle: "Stampante per labirinti di Jakob",
       controlsLabel: "Impostazioni",
       languageField: "Lingua",
       kindField: "Tipo",
@@ -439,8 +439,8 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
     alphabet: baseAlphabet,
     labels: {
       htmlLang: "fr",
-      appTitle: "Labyrinthe de lettres",
-      screenTitle: "Labyrinthe de lettres",
+      appTitle: "Imprimante de labyrinthes de Jakob",
+      screenTitle: "Imprimante de labyrinthes de Jakob",
       controlsLabel: "Réglages",
       languageField: "Langue",
       kindField: "Type",

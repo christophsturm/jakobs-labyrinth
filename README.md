@@ -1,4 +1,4 @@
-# Buchstabenlabyrinth
+# Jakobs Labyrinth Drucker
 
 Ein kleines Browser-Tool zum Erzeugen und Drucken von Buchstabenrätseln. Die
 Entwicklung läuft mit Vite und TypeScript; der Produktionsbuild erzeugt eine
@@ -52,8 +52,8 @@ Die auslieferbare Datei ist:
 dist/index.html
 ```
 
-Diese Datei kann bei Bedarf zu `buchstabenlabyrinth.html` umbenannt und direkt
-im Browser geöffnet werden.
+Diese Datei kann bei Bedarf zu `jakobs-labyrinth-drucker.html` umbenannt und
+direkt im Browser geöffnet werden.
 
 ## Bedienung
 
