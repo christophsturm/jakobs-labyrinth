@@ -4,6 +4,8 @@ export type PuzzleKind = "maze" | "wordSearch";
 
 export type MazeLetterAmount = "few" | "normal" | "many";
 
+export type PuzzleLanguage = "de" | "en" | "it" | "fr";
+
 export type Point = {
   x: number;
   y: number;
@@ -11,6 +13,7 @@ export type Point = {
 
 export type BasePuzzle = {
   kind: PuzzleKind;
+  language: PuzzleLanguage;
   word: string;
   cols: number;
   rows: number;
@@ -68,6 +71,7 @@ type Random = () => number;
 
 type GeneratePuzzleOptions = {
   kind?: PuzzleKind;
+  language?: PuzzleLanguage;
   word: string;
   cols: number;
   rows?: number;
@@ -87,6 +91,8 @@ const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ";
 const maxBacktrackingAttempts = 140;
 const maxMazeAttempts = 80;
 const maxGridSize = 24;
+const defaultLanguage: PuzzleLanguage = "de";
+const baseAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 const directions: DirectionVector[] = [
   { direction: "top", opposite: "bottom", dx: 0, dy: -1 },
@@ -95,39 +101,322 @@ const directions: DirectionVector[] = [
   { direction: "left", opposite: "right", dx: -1, dy: 0 },
 ];
 
-const difficultyLabels: Record<Difficulty, string> = {
-  easy: "Leicht",
-  medium: "Mittel",
-  hard: "Schwer",
+type LanguageLabels = {
+  htmlLang: string;
+  appTitle: string;
+  screenTitle: string;
+  controlsLabel: string;
+  languageField: string;
+  kindField: string;
+  wordField: string;
+  sizeField: string;
+  difficultyField: string;
+  mazeLetterAmountField: string;
+  generate: string;
+  showSolution: string;
+  hideSolution: string;
+  print: string;
+  name: string;
+  date: string;
+  wordMeta: string;
+  lettersMeta: string;
+  answerWord: string;
+  invalidWord: string;
+  unsupportedCharacters: (word: string) => string;
+  gridSize: (max: number) => string;
+  wordTooLongGrid: string;
+  wordTooLongMaze: string;
+  mazeGenerationFailed: string;
+  puzzleKinds: Record<PuzzleKind, string>;
+  difficulties: Record<Difficulty, string>;
+  mazeLetterAmounts: Record<MazeLetterAmount, string>;
+  endpoints: {
+    start: string;
+    goal: string;
+  };
+  openings: {
+    entrance: string;
+    exit: string;
+  };
+  wordSearchDesc: (cols: number, rows: number, difficulty: string) => string;
+  mazeDesc: (cols: number, rows: number, difficulty: string) => string;
 };
 
-const puzzleKindLabels: Record<PuzzleKind, string> = {
-  maze: "Buchstabenlabyrinth",
-  wordSearch: "Wortsuchbild",
+type LanguageConfig = {
+  locale: string;
+  alphabet: string;
+  labels: LanguageLabels;
 };
 
-const mazeLetterAmountLabels: Record<MazeLetterAmount, string> = {
-  few: "Wenig",
-  normal: "Mehr",
-  many: "Viele",
+const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
+  de: {
+    locale: "de-DE",
+    alphabet,
+    labels: {
+      htmlLang: "de",
+      appTitle: "Buchstabenlabyrinth",
+      screenTitle: "Buchstaben\u00adlabyrinth",
+      controlsLabel: "Einstellungen",
+      languageField: "Sprache",
+      kindField: "Variante",
+      wordField: "Lösungswort",
+      sizeField: "Größe",
+      difficultyField: "Schwierigkeit",
+      mazeLetterAmountField: "Buchstabenmenge",
+      generate: "Neu erzeugen",
+      showSolution: "Lösung anzeigen",
+      hideSolution: "Lösung verstecken",
+      print: "Drucken",
+      name: "Name",
+      date: "Datum",
+      wordMeta: "Wort",
+      lettersMeta: "Buchstaben",
+      answerWord: "Lösungswort",
+      invalidWord: "Bitte ein Wort aus Buchstaben A-Z, Ä, Ö oder Ü eingeben.",
+      unsupportedCharacters: (word) =>
+        `Nicht unterstützte Zeichen wurden entfernt. Verwendetes Wort: ${word}.`,
+      gridSize: (max) => `Das Raster muss zwischen 4 und ${max} Feldern groß sein.`,
+      wordTooLongGrid: "Das Wort ist zu lang für dieses Raster.",
+      wordTooLongMaze: "Das Wort ist zu lang für dieses Labyrinth.",
+      mazeGenerationFailed: "Das Labyrinth konnte nicht erzeugt werden.",
+      puzzleKinds: {
+        maze: "Buchstabenlabyrinth",
+        wordSearch: "Wortsuchbild",
+      },
+      difficulties: {
+        easy: "Leicht",
+        medium: "Mittel",
+        hard: "Schwer",
+      },
+      mazeLetterAmounts: {
+        few: "Wenig",
+        normal: "Mehr",
+        many: "Viele",
+      },
+      endpoints: {
+        start: "Start",
+        goal: "Ziel",
+      },
+      openings: {
+        entrance: "Eingang",
+        exit: "Ausgang",
+      },
+      wordSearchDesc: (cols, rows, difficulty) =>
+        `${cols} mal ${rows} Felder, Schwierigkeit ${difficulty}`,
+      mazeDesc: (cols, rows, difficulty) =>
+        `Ein Labyrinth mit Mauern, ${cols} mal ${rows} Felder, Schwierigkeit ${difficulty}`,
+    },
+  },
+  en: {
+    locale: "en-US",
+    alphabet: baseAlphabet,
+    labels: {
+      htmlLang: "en",
+      appTitle: "Letter Maze",
+      screenTitle: "Letter Maze",
+      controlsLabel: "Settings",
+      languageField: "Language",
+      kindField: "Puzzle type",
+      wordField: "Solution word",
+      sizeField: "Size",
+      difficultyField: "Difficulty",
+      mazeLetterAmountField: "Letter amount",
+      generate: "Generate",
+      showSolution: "Show solution",
+      hideSolution: "Hide solution",
+      print: "Print",
+      name: "Name",
+      date: "Date",
+      wordMeta: "Word",
+      lettersMeta: "Letters",
+      answerWord: "Solution word",
+      invalidWord: "Please enter a word using letters A-Z.",
+      unsupportedCharacters: (word) => `Unsupported characters were removed. Used word: ${word}.`,
+      gridSize: (max) => `The grid must be between 4 and ${max} cells wide.`,
+      wordTooLongGrid: "The word is too long for this grid.",
+      wordTooLongMaze: "The word is too long for this maze.",
+      mazeGenerationFailed: "The maze could not be generated.",
+      puzzleKinds: {
+        maze: "Letter maze",
+        wordSearch: "Word search",
+      },
+      difficulties: {
+        easy: "Easy",
+        medium: "Medium",
+        hard: "Hard",
+      },
+      mazeLetterAmounts: {
+        few: "Few",
+        normal: "More",
+        many: "Many",
+      },
+      endpoints: {
+        start: "Start",
+        goal: "Goal",
+      },
+      openings: {
+        entrance: "Entrance",
+        exit: "Exit",
+      },
+      wordSearchDesc: (cols, rows, difficulty) =>
+        `${cols} by ${rows} cells, difficulty ${difficulty}`,
+      mazeDesc: (cols, rows, difficulty) =>
+        `A walled maze, ${cols} by ${rows} cells, difficulty ${difficulty}`,
+    },
+  },
+  it: {
+    locale: "it-IT",
+    alphabet: baseAlphabet,
+    labels: {
+      htmlLang: "it",
+      appTitle: "Labirinto di lettere",
+      screenTitle: "Labirinto di lettere",
+      controlsLabel: "Impostazioni",
+      languageField: "Lingua",
+      kindField: "Tipo",
+      wordField: "Parola soluzione",
+      sizeField: "Dimensione",
+      difficultyField: "Difficoltà",
+      mazeLetterAmountField: "Quantità lettere",
+      generate: "Genera",
+      showSolution: "Mostra soluzione",
+      hideSolution: "Nascondi soluzione",
+      print: "Stampa",
+      name: "Nome",
+      date: "Data",
+      wordMeta: "Parola",
+      lettersMeta: "Lettere",
+      answerWord: "Parola soluzione",
+      invalidWord: "Inserisci una parola con lettere A-Z.",
+      unsupportedCharacters: (word) =>
+        `I caratteri non supportati sono stati rimossi. Parola usata: ${word}.`,
+      gridSize: (max) => `La griglia deve avere tra 4 e ${max} celle.`,
+      wordTooLongGrid: "La parola è troppo lunga per questa griglia.",
+      wordTooLongMaze: "La parola è troppo lunga per questo labirinto.",
+      mazeGenerationFailed: "Impossibile generare il labirinto.",
+      puzzleKinds: {
+        maze: "Labirinto di lettere",
+        wordSearch: "Cerca parole",
+      },
+      difficulties: {
+        easy: "Facile",
+        medium: "Medio",
+        hard: "Difficile",
+      },
+      mazeLetterAmounts: {
+        few: "Poche",
+        normal: "Normale",
+        many: "Molte",
+      },
+      endpoints: {
+        start: "Inizio",
+        goal: "Fine",
+      },
+      openings: {
+        entrance: "Entrata",
+        exit: "Uscita",
+      },
+      wordSearchDesc: (cols, rows, difficulty) =>
+        `${cols} per ${rows} celle, difficoltà ${difficulty}`,
+      mazeDesc: (cols, rows, difficulty) =>
+        `Un labirinto con muri, ${cols} per ${rows} celle, difficoltà ${difficulty}`,
+    },
+  },
+  fr: {
+    locale: "fr-FR",
+    alphabet: baseAlphabet,
+    labels: {
+      htmlLang: "fr",
+      appTitle: "Labyrinthe de lettres",
+      screenTitle: "Labyrinthe de lettres",
+      controlsLabel: "Réglages",
+      languageField: "Langue",
+      kindField: "Type",
+      wordField: "Mot solution",
+      sizeField: "Taille",
+      difficultyField: "Difficulté",
+      mazeLetterAmountField: "Quantité de lettres",
+      generate: "Générer",
+      showSolution: "Afficher solution",
+      hideSolution: "Masquer solution",
+      print: "Imprimer",
+      name: "Nom",
+      date: "Date",
+      wordMeta: "Mot",
+      lettersMeta: "Lettres",
+      answerWord: "Mot solution",
+      invalidWord: "Saisir un mot avec les lettres A-Z.",
+      unsupportedCharacters: (word) =>
+        `Les caractères non pris en charge ont été retirés. Mot utilisé : ${word}.`,
+      gridSize: (max) => `La grille doit contenir entre 4 et ${max} cases.`,
+      wordTooLongGrid: "Le mot est trop long pour cette grille.",
+      wordTooLongMaze: "Le mot est trop long pour ce labyrinthe.",
+      mazeGenerationFailed: "Le labyrinthe n'a pas pu être généré.",
+      puzzleKinds: {
+        maze: "Labyrinthe de lettres",
+        wordSearch: "Mots mêlés",
+      },
+      difficulties: {
+        easy: "Facile",
+        medium: "Moyen",
+        hard: "Difficile",
+      },
+      mazeLetterAmounts: {
+        few: "Peu",
+        normal: "Plus",
+        many: "Beaucoup",
+      },
+      endpoints: {
+        start: "Début",
+        goal: "Fin",
+      },
+      openings: {
+        entrance: "Entrée",
+        exit: "Sortie",
+      },
+      wordSearchDesc: (cols, rows, difficulty) =>
+        `${cols} par ${rows} cases, difficulté ${difficulty}`,
+      mazeDesc: (cols, rows, difficulty) =>
+        `Un labyrinthe avec murs, ${cols} par ${rows} cases, difficulté ${difficulty}`,
+    },
+  },
 };
 
-export function normalizeWord(input: string): string {
-  return normalizeWordWithFeedback(input).word;
+export function normalizeWord(input: string, language: PuzzleLanguage = defaultLanguage): string {
+  return normalizeWordWithFeedback(input, language).word;
 }
 
-export function normalizeWordWithFeedback(input: string): NormalizedWordFeedback {
+export function normalizeWordWithFeedback(
+  input: string,
+  language: PuzzleLanguage = defaultLanguage,
+): NormalizedWordFeedback {
+  validatePuzzleLanguage(language);
+
+  const config = languageConfigs[language];
   const trimmed = input.normalize("NFC").trim();
-  const uppercased = trimmed.toLocaleUpperCase("de-DE");
-  const word = uppercased.replace(/[^A-ZÄÖÜ]/g, "");
-  const removedCharacters = word.length !== uppercased.length;
+  const uppercased = trimmed.toLocaleUpperCase(config.locale);
+  const normalized = language === "de" ? uppercased : foldToBaseLatin(uppercased);
+  const word = normalized.replace(allowedLetterPattern(language), "");
+  const removedCharacters = word.length !== normalized.length;
 
   return {
     word,
-    changed: removedCharacters,
+    changed: word !== uppercased,
     removedCharacters,
     hadInput: trimmed.length > 0,
   };
+}
+
+export function languageFromLocales(locales: readonly string[]): PuzzleLanguage {
+  for (const locale of locales) {
+    const language = locale.toLowerCase().split("-")[0] ?? "";
+
+    if (isPuzzleLanguage(language)) {
+      return language;
+    }
+  }
+
+  return defaultLanguage;
 }
 
 export function makeSeed(input = `${Date.now()}:${Math.random()}`): number {
@@ -143,35 +432,41 @@ export function makeSeed(input = `${Date.now()}:${Math.random()}`): number {
 
 export function generatePuzzle(options: GeneratePuzzleOptions): Puzzle {
   const kind = options.kind ?? "maze";
+  const language = options.language ?? defaultLanguage;
 
   validatePuzzleKind(kind);
+  validatePuzzleLanguage(language);
   validateDifficulty(options.difficulty);
 
   if (kind === "wordSearch") {
-    return generateWordSearchPuzzle(options);
+    return generateWordSearchPuzzle({ ...options, language });
   }
 
-  return generateMazePuzzle({ ...options, kind });
+  return generateMazePuzzle({ ...options, kind, language });
 }
 
 export function generateWordSearchPuzzle(options: GeneratePuzzleOptions): WordSearchPuzzle {
-  const word = normalizeWord(options.word);
+  const language = options.language ?? defaultLanguage;
+  const word = normalizeWord(options.word, language);
   const rows = options.rows ?? options.cols;
   const { cols, difficulty } = options;
 
+  validatePuzzleLanguage(language);
   validateDifficulty(difficulty);
-  validatePuzzleInput(word, cols, rows);
+  validatePuzzleInput(word, cols, rows, language);
 
-  const seed = resolveSeed(options, "wordSearch", word, cols, rows, difficulty);
+  const config = languageConfigs[language];
+  const seed = resolveSeed(options, "wordSearch", language, word, cols, rows, difficulty);
   const rng = createRandom(seed);
   const solutionPath = generateWordSearchPath(word.length, cols, rows, difficulty, rng);
   const wordLetterPoints = [...solutionPath];
-  const letters = fillGrid(word, cols, rows, difficulty, rng);
+  const letters = fillGrid(word, cols, rows, difficulty, config.alphabet, rng);
 
   placeWordLetters(letters, word, wordLetterPoints);
 
   return {
     kind: "wordSearch",
+    language,
     word,
     cols,
     rows,
@@ -184,16 +479,28 @@ export function generateWordSearchPuzzle(options: GeneratePuzzleOptions): WordSe
 }
 
 export function generateMazePuzzle(options: GeneratePuzzleOptions): MazePuzzle {
-  const word = normalizeWord(options.word);
+  const language = options.language ?? defaultLanguage;
+  const word = normalizeWord(options.word, language);
   const rows = options.rows ?? options.cols;
   const { cols, difficulty } = options;
   const mazeLetterAmount = options.mazeLetterAmount ?? "normal";
 
+  validatePuzzleLanguage(language);
   validateDifficulty(difficulty);
-  validatePuzzleInput(word, cols, rows);
+  validatePuzzleInput(word, cols, rows, language);
   validateMazeLetterAmount(mazeLetterAmount);
 
-  const seed = resolveSeed(options, "maze", word, cols, rows, difficulty, mazeLetterAmount);
+  const config = languageConfigs[language];
+  const seed = resolveSeed(
+    options,
+    "maze",
+    language,
+    word,
+    cols,
+    rows,
+    difficulty,
+    mazeLetterAmount,
+  );
   const rng = createRandom(seed);
   let maze = createMazeGrid(cols, rows);
   let solutionPath: Point[] = [];
@@ -234,7 +541,7 @@ export function generateMazePuzzle(options: GeneratePuzzleOptions): MazePuzzle {
   }
 
   if (solutionPath.length < word.length) {
-    throw new Error("Das Wort ist zu lang für dieses Labyrinth.");
+    throw new Error(config.labels.wordTooLongMaze);
   }
 
   const wordLetterPoints = selectWordLetterPoints(solutionPath, word.length);
@@ -248,6 +555,7 @@ export function generateMazePuzzle(options: GeneratePuzzleOptions): MazePuzzle {
     wordLetterPoints,
     difficulty,
     mazeLetterAmount,
+    config.alphabet,
     rng,
   );
 
@@ -255,7 +563,7 @@ export function generateMazePuzzle(options: GeneratePuzzleOptions): MazePuzzle {
   const end = solutionPath[solutionPath.length - 1];
 
   if (!start || !end) {
-    throw new Error("Das Labyrinth konnte nicht erzeugt werden.");
+    throw new Error(config.labels.mazeGenerationFailed);
   }
 
   const entrance = { point: start, side: entranceSide };
@@ -266,6 +574,7 @@ export function generateMazePuzzle(options: GeneratePuzzleOptions): MazePuzzle {
 
   return {
     kind: "maze",
+    language,
     mazeLetterAmount,
     word,
     cols,
@@ -302,6 +611,7 @@ export function pathSpellsWord(puzzle: Puzzle): string {
 function resolveSeed(
   options: GeneratePuzzleOptions,
   kind: PuzzleKind,
+  language: PuzzleLanguage,
   word: string,
   cols: number,
   rows: number,
@@ -311,14 +621,21 @@ function resolveSeed(
   return (
     options.seed ??
     makeSeed(
-      `${kind}:${word}:${cols}:${rows}:${difficulty}:${mazeLetterAmount ?? "n/a"}:${Date.now()}:${Math.random()}`,
+      `${kind}:${language}:${word}:${cols}:${rows}:${difficulty}:${mazeLetterAmount ?? "n/a"}:${Date.now()}:${Math.random()}`,
     )
   );
 }
 
-function validatePuzzleInput(word: string, cols: number, rows: number): void {
+function validatePuzzleInput(
+  word: string,
+  cols: number,
+  rows: number,
+  language: PuzzleLanguage,
+): void {
+  const labels = languageConfigs[language].labels;
+
   if (!word) {
-    throw new Error("Bitte ein Wort aus Buchstaben A-Z, Ä, Ö oder Ü eingeben.");
+    throw new Error(labels.invalidWord);
   }
 
   if (
@@ -329,11 +646,11 @@ function validatePuzzleInput(word: string, cols: number, rows: number): void {
     cols > maxGridSize ||
     rows > maxGridSize
   ) {
-    throw new Error(`Das Raster muss zwischen 4 und ${maxGridSize} Feldern groß sein.`);
+    throw new Error(labels.gridSize(maxGridSize));
   }
 
   if (word.length > cols * rows) {
-    throw new Error("Das Wort ist zu lang für dieses Raster.");
+    throw new Error(labels.wordTooLongGrid);
   }
 }
 
@@ -349,10 +666,32 @@ function validateDifficulty(value: string): asserts value is Difficulty {
   }
 }
 
+function validatePuzzleLanguage(value: string): asserts value is PuzzleLanguage {
+  if (!isPuzzleLanguage(value)) {
+    throw new Error("Ungültige Sprache.");
+  }
+}
+
+function isPuzzleLanguage(value: string): value is PuzzleLanguage {
+  return value === "de" || value === "en" || value === "it" || value === "fr";
+}
+
 function validateMazeLetterAmount(value: string): asserts value is MazeLetterAmount {
   if (value !== "few" && value !== "normal" && value !== "many") {
     throw new Error("Ungültige Buchstabenmenge für das Labyrinth.");
   }
+}
+
+function foldToBaseLatin(value: string): string {
+  return value
+    .replaceAll("Æ", "AE")
+    .replaceAll("Œ", "OE")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function allowedLetterPattern(language: PuzzleLanguage): RegExp {
+  return language === "de" ? /[^A-ZÄÖÜ]/g : /[^A-Z]/g;
 }
 
 function createRandom(seed: number): Random {
@@ -393,10 +732,11 @@ function fillGrid(
   cols: number,
   rows: number,
   difficulty: Difficulty,
+  fillerAlphabet: string,
   rng: Random,
 ): string[][] {
   return Array.from({ length: rows }, () =>
-    Array.from({ length: cols }, () => randomFillerLetter(word, difficulty, rng)),
+    Array.from({ length: cols }, () => randomFillerLetter(word, difficulty, fillerAlphabet, rng)),
   );
 }
 
@@ -424,6 +764,7 @@ function placeMazeDistractorLetters(
   wordLetterPoints: Point[],
   difficulty: Difficulty,
   mazeLetterAmount: MazeLetterAmount,
+  fillerAlphabet: string,
   rng: Random,
 ): void {
   const distractorMultipliers: Record<MazeLetterAmount, Record<Difficulty, number>> = {
@@ -471,7 +812,7 @@ function placeMazeDistractorLetters(
   const selected = selectDistributedPoints(candidates, count, wordLetterPoints, rng);
 
   for (const point of selected) {
-    letters[point.y]![point.x] = randomFillerLetter(word, difficulty, rng);
+    letters[point.y]![point.x] = randomFillerLetter(word, difficulty, fillerAlphabet, rng);
   }
 }
 
@@ -526,7 +867,12 @@ function squaredDistance(first: Point, second: Point): number {
   return dx * dx + dy * dy;
 }
 
-function randomFillerLetter(word: string, difficulty: Difficulty, rng: Random): string {
+function randomFillerLetter(
+  word: string,
+  difficulty: Difficulty,
+  fillerAlphabet: string,
+  rng: Random,
+): string {
   const distractorChance: Record<Difficulty, number> = {
     easy: 0.07,
     medium: 0.17,
@@ -538,8 +884,8 @@ function randomFillerLetter(word: string, difficulty: Difficulty, rng: Random): 
     return word[index] ?? alphabet[0] ?? "A";
   }
 
-  const index = Math.floor(rng() * alphabet.length);
-  return alphabet[index] ?? "A";
+  const index = Math.floor(rng() * fillerAlphabet.length);
+  return fillerAlphabet[index] ?? "A";
 }
 
 function generateWordSearchPath(
@@ -1194,6 +1540,7 @@ function gridNeighbors(point: Point, cols: number, rows: number): Point[] {
 }
 
 function renderWordSearchSvg(puzzle: WordSearchPuzzle, options: { showSolution: boolean }): string {
+  const labels = languageConfigs[puzzle.language].labels;
   const cell = 48;
   const padding = 3;
   const width = puzzle.cols * cell + padding * 2;
@@ -1242,7 +1589,7 @@ function renderWordSearchSvg(puzzle: WordSearchPuzzle, options: { showSolution: 
         0.58,
         "solution-layer print-hidden-solution",
       )}
-       ${renderEndpointMarkers(puzzle.solutionPath, cell, padding)}`
+       ${renderEndpointMarkers(puzzle.solutionPath, cell, padding, labels)}`
     : "";
 
   return `
@@ -1251,12 +1598,12 @@ function renderWordSearchSvg(puzzle: WordSearchPuzzle, options: { showSolution: 
       width="${width}"
       height="${height}"
       role="img"
-      aria-label="${puzzleKindLabels.wordSearch} für ${escapeHtml(puzzle.word)}"
+      aria-label="${labels.puzzleKinds.wordSearch}: ${escapeHtml(puzzle.word)}"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <title>${puzzleKindLabels.wordSearch} für ${escapeHtml(puzzle.word)}</title>
-      <desc>${puzzle.cols} mal ${puzzle.rows} Felder, Schwierigkeit ${escapeHtml(
-        difficultyLabels[puzzle.difficulty],
+      <title>${labels.puzzleKinds.wordSearch}: ${escapeHtml(puzzle.word)}</title>
+      <desc>${escapeHtml(
+        labels.wordSearchDesc(puzzle.cols, puzzle.rows, labels.difficulties[puzzle.difficulty]),
       )}</desc>
       ${cells.join("")}
       ${solutionLayer}
@@ -1265,6 +1612,7 @@ function renderWordSearchSvg(puzzle: WordSearchPuzzle, options: { showSolution: 
 }
 
 function renderMazeSvg(puzzle: MazePuzzle, options: { showSolution: boolean }): string {
+  const labels = languageConfigs[puzzle.language].labels;
   const cell = 50;
   const padding = 64;
   const width = puzzle.cols * cell + padding * 2;
@@ -1328,16 +1676,14 @@ function renderMazeSvg(puzzle: MazePuzzle, options: { showSolution: boolean }): 
       width="${width}"
       height="${height}"
       role="img"
-      aria-label="${puzzleKindLabels.maze}"
+      aria-label="${labels.puzzleKinds.maze}"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <title>${puzzleKindLabels.maze}</title>
-      <desc>Ein Labyrinth mit Mauern, ${puzzle.cols} mal ${puzzle.rows} Felder, Schwierigkeit ${escapeHtml(
-        difficultyLabels[puzzle.difficulty],
-      )}</desc>
+      <title>${labels.puzzleKinds.maze}</title>
+      <desc>${escapeHtml(labels.mazeDesc(puzzle.cols, puzzle.rows, labels.difficulties[puzzle.difficulty]))}</desc>
       ${solutionLayer}
       ${cells.join("")}
-      ${renderMazeOpenings(puzzle, cell, padding)}
+      ${renderMazeOpenings(puzzle, cell, padding, labels)}
       ${renderMazeWalls(puzzle.maze, cell, padding)}
     </svg>
   `;
@@ -1429,7 +1775,12 @@ function addWallLine(
   lines.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" />`);
 }
 
-function renderEndpointMarkers(path: Point[], cell: number, padding: number): string {
+function renderEndpointMarkers(
+  path: Point[],
+  cell: number,
+  padding: number,
+  labels: LanguageLabels,
+): string {
   const start = path[0];
   const end = path[path.length - 1];
 
@@ -1438,15 +1789,20 @@ function renderEndpointMarkers(path: Point[], cell: number, padding: number): st
   }
 
   return `
-    ${renderEndpoint(start, "Start", "#f9d64a", cell, padding, "solution-marker print-hidden-solution")}
-    ${renderEndpoint(end, "Ziel", "#ef7258", cell, padding, "solution-marker print-hidden-solution")}
+    ${renderEndpoint(start, labels.endpoints.start, "#f9d64a", cell, padding, "solution-marker print-hidden-solution")}
+    ${renderEndpoint(end, labels.endpoints.goal, "#ef7258", cell, padding, "solution-marker print-hidden-solution")}
   `;
 }
 
-function renderMazeOpenings(puzzle: MazePuzzle, cell: number, padding: number): string {
+function renderMazeOpenings(
+  puzzle: MazePuzzle,
+  cell: number,
+  padding: number,
+  labels: LanguageLabels,
+): string {
   return `
-    ${renderOpeningLabel(puzzle.entrance, "Eingang", "#f9d64a", cell, padding)}
-    ${renderOpeningLabel(puzzle.exit, "Ausgang", "#ef7258", cell, padding)}
+    ${renderOpeningLabel(puzzle.entrance, labels.openings.entrance, "#f9d64a", cell, padding)}
+    ${renderOpeningLabel(puzzle.exit, labels.openings.exit, "#ef7258", cell, padding)}
   `;
 }
 
@@ -1603,10 +1959,19 @@ function escapeHtml(value: string): string {
 }
 
 function bindApp(): void {
+  const controls = byId<HTMLElement>("controls");
+  const screenTitle = byId<HTMLHeadingElement>("screen-title");
+  const languageLabel = byId<HTMLSpanElement>("language-label");
+  const languageSelect = byId<HTMLSelectElement>("language");
+  const kindLabel = byId<HTMLSpanElement>("kind-label");
   const kindSelect = byId<HTMLSelectElement>("kind");
+  const wordLabel = byId<HTMLSpanElement>("word-label");
   const wordInput = byId<HTMLInputElement>("word");
+  const sizeLabel = byId<HTMLSpanElement>("size-label");
   const sizeSelect = byId<HTMLSelectElement>("size");
+  const difficultyLabel = byId<HTMLSpanElement>("difficulty-label");
   const difficultySelect = byId<HTMLSelectElement>("difficulty");
+  const mazeLetterAmountLabel = byId<HTMLSpanElement>("maze-letter-amount-label");
   const mazeLetterAmountField = byId<HTMLLabelElement>("maze-letter-amount-field");
   const mazeLetterAmountSelect = byId<HTMLSelectElement>("maze-letter-amount");
   const generateButton = byId<HTMLButtonElement>("generate");
@@ -1615,18 +1980,32 @@ function bindApp(): void {
   const worksheet = byId<HTMLDivElement>("worksheet");
   const worksheetMeta = byId<HTMLDivElement>("worksheet-meta");
   const printTitle = byId<HTMLHeadingElement>("print-title");
+  const printName = byId<HTMLSpanElement>("print-name");
+  const printDate = byId<HTMLSpanElement>("print-date");
   const answerBoxes = byId<HTMLDivElement>("answer-boxes");
   const status = byId<HTMLParagraphElement>("status");
 
   let currentPuzzle: Puzzle | null = null;
   let showSolution = false;
 
+  languageSelect.value = languageFromLocales(
+    navigator.languages.length > 0 ? navigator.languages : [navigator.language],
+  );
+
+  function currentLanguage(): PuzzleLanguage {
+    return parsePuzzleLanguage(languageSelect.value);
+  }
+
+  function currentLabels(): LanguageLabels {
+    return languageConfigs[currentLanguage()].labels;
+  }
+
   function renderCurrentPuzzle(): void {
     if (!currentPuzzle) {
       return;
     }
 
-    const title = puzzleKindLabels[currentPuzzle.kind];
+    const title = languageConfigs[currentPuzzle.language].labels.puzzleKinds[currentPuzzle.kind];
 
     worksheet.innerHTML = renderSvg(currentPuzzle, { showSolution });
     printTitle.textContent = title;
@@ -1635,21 +2014,25 @@ function bindApp(): void {
   }
 
   function regenerate(): void {
+    const language = currentLanguage();
+    const labels = languageConfigs[language].labels;
+
     showSolution = false;
-    toggleSolutionButton.textContent = "Lösung anzeigen";
+    toggleSolutionButton.textContent = labels.showSolution;
     updateVariantControls();
 
     try {
-      const wordFeedback = normalizeWordWithFeedback(wordInput.value);
+      const wordFeedback = normalizeWordWithFeedback(wordInput.value, language);
       currentPuzzle = generatePuzzle({
         kind: parsePuzzleKind(kindSelect.value),
+        language,
         word: wordInput.value,
         cols: Number(sizeSelect.value),
         difficulty: parseDifficulty(difficultySelect.value),
         mazeLetterAmount: parseMazeLetterAmount(mazeLetterAmountSelect.value),
       });
       status.textContent = wordFeedback.removedCharacters
-        ? `Nicht unterstützte Zeichen wurden entfernt. Verwendetes Wort: ${currentPuzzle.word}.`
+        ? labels.unsupportedCharacters(currentPuzzle.word)
         : "";
       renderCurrentPuzzle();
     } catch (error) {
@@ -1658,7 +2041,7 @@ function bindApp(): void {
       worksheetMeta.textContent = "";
       answerBoxes.hidden = true;
       answerBoxes.textContent = "";
-      printTitle.textContent = "Buchstabenlabyrinth";
+      printTitle.textContent = labels.appTitle;
       status.textContent = error instanceof Error ? error.message : "Fehler beim Erzeugen.";
     }
   }
@@ -1667,6 +2050,39 @@ function bindApp(): void {
     mazeLetterAmountField.hidden = kindSelect.value !== "maze";
   }
 
+  function updateLanguageText(): void {
+    const labels = currentLabels();
+
+    document.documentElement.lang = labels.htmlLang;
+    document.title = labels.appTitle;
+    controls.setAttribute("aria-label", labels.controlsLabel);
+    screenTitle.textContent = labels.screenTitle;
+    languageLabel.textContent = labels.languageField;
+    kindLabel.textContent = labels.kindField;
+    wordLabel.textContent = labels.wordField;
+    sizeLabel.textContent = labels.sizeField;
+    difficultyLabel.textContent = labels.difficultyField;
+    mazeLetterAmountLabel.textContent = labels.mazeLetterAmountField;
+    generateButton.textContent = labels.generate;
+    printButton.textContent = labels.print;
+    printName.textContent = labels.name;
+    printDate.textContent = labels.date;
+
+    setOptionText(kindSelect, "maze", labels.puzzleKinds.maze);
+    setOptionText(kindSelect, "wordSearch", labels.puzzleKinds.wordSearch);
+    setOptionText(difficultySelect, "easy", labels.difficulties.easy);
+    setOptionText(difficultySelect, "medium", labels.difficulties.medium);
+    setOptionText(difficultySelect, "hard", labels.difficulties.hard);
+    setOptionText(mazeLetterAmountSelect, "few", labels.mazeLetterAmounts.few);
+    setOptionText(mazeLetterAmountSelect, "normal", labels.mazeLetterAmounts.normal);
+    setOptionText(mazeLetterAmountSelect, "many", labels.mazeLetterAmounts.many);
+    toggleSolutionButton.textContent = showSolution ? labels.hideSolution : labels.showSolution;
+  }
+
+  languageSelect.addEventListener("change", () => {
+    updateLanguageText();
+    regenerate();
+  });
   kindSelect.addEventListener("change", regenerate);
   generateButton.addEventListener("click", regenerate);
   wordInput.addEventListener("keydown", (event) => {
@@ -1680,13 +2096,28 @@ function bindApp(): void {
     }
 
     showSolution = !showSolution;
-    toggleSolutionButton.textContent = showSolution ? "Lösung verstecken" : "Lösung anzeigen";
+    const labels = currentLabels();
+    toggleSolutionButton.textContent = showSolution ? labels.hideSolution : labels.showSolution;
     renderCurrentPuzzle();
   });
   printButton.addEventListener("click", () => window.print());
 
+  updateLanguageText();
   updateVariantControls();
   regenerate();
+}
+
+function setOptionText(select: HTMLSelectElement, value: string, label: string): void {
+  const option = Array.from(select.options).find((item) => item.value === value);
+
+  if (option) {
+    option.textContent = label;
+  }
+}
+
+function parsePuzzleLanguage(value: string): PuzzleLanguage {
+  validatePuzzleLanguage(value);
+  return value;
 }
 
 function parsePuzzleKind(value: string): PuzzleKind {
@@ -1705,13 +2136,14 @@ function parseMazeLetterAmount(value: string): MazeLetterAmount {
 }
 
 function renderWorksheetMeta(puzzle: Puzzle, title: string): string {
-  const base = `${title} · ${puzzle.cols} × ${puzzle.rows} · ${difficultyLabels[puzzle.difficulty]}`;
+  const labels = languageConfigs[puzzle.language].labels;
+  const base = `${title} · ${puzzle.cols} × ${puzzle.rows} · ${labels.difficulties[puzzle.difficulty]}`;
 
   if (puzzle.kind === "maze") {
-    return `${base} · Buchstaben: ${mazeLetterAmountLabels[puzzle.mazeLetterAmount]}`;
+    return `${base} · ${labels.lettersMeta}: ${labels.mazeLetterAmounts[puzzle.mazeLetterAmount]}`;
   }
 
-  return `${base} · Wort: ${puzzle.word}`;
+  return `${base} · ${labels.wordMeta}: ${puzzle.word}`;
 }
 
 function renderAnswerBoxes(puzzle: Puzzle, container: HTMLDivElement): void {
@@ -1732,8 +2164,10 @@ export function renderAnswerBoxesHtml(puzzle: Puzzle): string {
     return "";
   }
 
+  const labels = languageConfigs[puzzle.language].labels;
+
   return `
-    <div class="answer-boxes-label">Lösungswort</div>
+    <div class="answer-boxes-label">${escapeHtml(labels.answerWord)}</div>
     <div class="answer-boxes-cells">
       ${Array.from({ length: puzzle.word.length }, () => '<span class="answer-box"></span>').join("")}
     </div>

@@ -4,6 +4,7 @@ import {
   generateMazePuzzle,
   generatePuzzle,
   generateWordSearchPuzzle,
+  languageFromLocales,
   makeSeed,
   normalizeWord,
   normalizeWordWithFeedback,
@@ -13,6 +14,7 @@ import {
   renderSvg,
   type MazePuzzle,
   type Point,
+  type PuzzleLanguage,
   type WordSearchPuzzle,
 } from "./main";
 
@@ -20,6 +22,12 @@ describe("normalizeWord", () => {
   test("keeps German uppercase letters and removes separators", () => {
     expect(normalizeWord("  Eis-Bär 42! ")).toBe("EISBÄR");
     expect(normalizeWord("straße")).toBe("STRASSE");
+  });
+
+  test("folds accents for English, Italian, and French words", () => {
+    expect(normalizeWord("jalapeño", "en")).toBe("JALAPENO");
+    expect(normalizeWord("perché", "it")).toBe("PERCHE");
+    expect(normalizeWord("cœur d'été", "fr")).toBe("COEURDETE");
   });
 
   test("reports unsupported characters instead of silently changing the input", () => {
@@ -35,6 +43,25 @@ describe("normalizeWord", () => {
       removedCharacters: true,
       hadInput: true,
     });
+    expect(normalizeWordWithFeedback("CAFÉ", "fr")).toEqual({
+      word: "CAFE",
+      changed: true,
+      removedCharacters: false,
+      hadInput: true,
+    });
+  });
+});
+
+describe("languageFromLocales", () => {
+  test.each([
+    [["en-US"], "en"],
+    [["it-IT", "en-US"], "it"],
+    [["pt-BR", "fr-CA"], "fr"],
+    [["de-AT"], "de"],
+    [["es-ES"], "de"],
+    [[], "de"],
+  ] satisfies Array<[string[], PuzzleLanguage]>)("maps %j to %s", (locales, expected) => {
+    expect(languageFromLocales(locales)).toBe(expected);
   });
 });
 
@@ -127,6 +154,21 @@ describe("generateMazePuzzle", () => {
     expect(countLetters(few.letters)).toBeLessThan(countLetters(normal.letters));
     expect(countLetters(normal.letters)).toBeLessThan(countLetters(many.letters));
     expect(pathSpellsWord(many)).toBe("TOR");
+  });
+
+  test("stores the selected language and uses its normalized letters", () => {
+    const puzzle = generateMazePuzzle({
+      kind: "maze",
+      language: "fr",
+      word: "été",
+      cols: 6,
+      difficulty: "easy",
+      seed: 2026,
+    });
+
+    expect(puzzle.language).toBe("fr");
+    expect(pathSpellsWord(puzzle)).toBe("ETE");
+    expect(puzzle.letters.flat().every((letter) => /^[A-Z]*$/.test(letter))).toBe(true);
   });
 
   test("supports non-square grids through the public API", () => {
@@ -225,6 +267,7 @@ describe("renderSvg", () => {
   test("escapes dynamic text and hides the word-search solution line by default", () => {
     const puzzle: WordSearchPuzzle = {
       kind: "wordSearch",
+      language: "de",
       word: "<BAD>",
       cols: 2,
       rows: 2,
@@ -275,6 +318,31 @@ describe("renderSvg", () => {
     expect(countLetters(puzzle.letters)).toBeLessThanOrEqual(3);
   });
 
+  test("uses localized labels in generated SVG", () => {
+    const french = generateMazePuzzle({
+      kind: "maze",
+      language: "fr",
+      word: "été",
+      cols: 6,
+      difficulty: "easy",
+      seed: 14,
+    });
+    const italian = generateWordSearchPuzzle({
+      kind: "wordSearch",
+      language: "it",
+      word: "perché",
+      cols: 8,
+      difficulty: "easy",
+      seed: 15,
+    });
+
+    expect(renderSvg(french, { showSolution: false })).toContain("Labyrinthe de lettres");
+    expect(renderSvg(french, { showSolution: false })).toContain("Entrée");
+    expect(renderSvg(french, { showSolution: false })).toContain("Sortie");
+    expect(renderSvg(italian, { showSolution: true })).toContain("Cerca parole");
+    expect(renderSvg(italian, { showSolution: true })).toContain("Inizio");
+  });
+
   test("marks maze solution-only SVG elements so print CSS can hide them", () => {
     const puzzle = generateMazePuzzle({
       kind: "maze",
@@ -311,6 +379,19 @@ describe("renderAnswerBoxesHtml", () => {
     expect(renderAnswerBoxesHtml(maze).match(/class="answer-box"/g)).toHaveLength(6);
     expect(renderAnswerBoxesHtml(wordSearch)).toBe("");
   });
+
+  test("localizes the printable answer-box label", () => {
+    const maze = generateMazePuzzle({
+      kind: "maze",
+      language: "en",
+      word: "DRAGON",
+      cols: 10,
+      difficulty: "medium",
+      seed: 4321,
+    });
+
+    expect(renderAnswerBoxesHtml(maze)).toContain("Solution word");
+  });
 });
 
 describe("project configuration", () => {
@@ -328,6 +409,22 @@ describe("project configuration", () => {
 
     expect(html).toContain(".print-hidden-solution");
     expect(html).toMatch(/@media print[\s\S]*\.print-hidden-solution[\s\S]*display:\s*none/);
+  });
+
+  test("includes a language selector with the supported languages", () => {
+    const html = readFileSync("index.html", "utf8");
+
+    expect(html).toContain('select id="language"');
+    expect(html).toContain('value="en"');
+    expect(html).toContain('value="it"');
+    expect(html).toContain('value="fr"');
+  });
+
+  test("keeps sidebar controls shrinkable after long localized labels", () => {
+    const html = readFileSync("index.html", "utf8");
+
+    expect(html).toMatch(/label\s*\{[\s\S]*min-width:\s*0/);
+    expect(html).toMatch(/input,\s*select\s*\{[\s\S]*min-width:\s*0/);
   });
 });
 
