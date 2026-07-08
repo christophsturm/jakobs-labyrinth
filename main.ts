@@ -1,3 +1,5 @@
+import * as v from "valibot";
+
 export type Difficulty = "easy" | "medium" | "hard";
 
 export type PuzzleKind = "maze" | "wordSearch";
@@ -80,6 +82,24 @@ type GeneratePuzzleOptions = {
   seed?: number;
 };
 
+export type PuzzleUrlSettings = {
+  kind?: PuzzleKind;
+  word?: string;
+  cols?: number;
+  difficulty?: Difficulty;
+  mazeLetterAmount?: MazeLetterAmount;
+  seed?: number;
+};
+
+export type CompletePuzzleUrlSettings = {
+  kind: PuzzleKind;
+  word: string;
+  cols: number;
+  difficulty: Difficulty;
+  mazeLetterAmount: MazeLetterAmount;
+  seed: number;
+};
+
 type DirectionVector = {
   direction: Direction;
   opposite: Direction;
@@ -93,6 +113,55 @@ const maxMazeAttempts = 80;
 const maxGridSize = 24;
 const defaultLanguage: PuzzleLanguage = "de";
 const baseAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const urlSizeOptions = [8, 10, 12] as const;
+const urlSizeOptionStrings = ["8", "10", "12"] as const;
+const maxUrlSeed = 0xffffffff;
+const urlParamNames = {
+  kind: "kind",
+  word: "word",
+  cols: "size",
+  difficulty: "difficulty",
+  mazeLetterAmount: "letters",
+  seed: "seed",
+} as const;
+
+const puzzleKindSchema = v.picklist(["maze", "wordSearch"] as const);
+const difficultySchema = v.picklist(["easy", "medium", "hard"] as const);
+const mazeLetterAmountSchema = v.picklist(["few", "normal", "many"] as const);
+const urlWordSchema = v.pipe(
+  v.string(),
+  v.transform((value) => value.trim()),
+  v.check((value) => value.length > 0, "Word must not be empty."),
+);
+const urlColsReadSchema = v.pipe(
+  v.picklist(urlSizeOptionStrings),
+  v.transform((value) => Number(value)),
+);
+const urlColsWriteSchema = v.pipe(
+  v.number(),
+  v.integer(),
+  v.check(
+    (value) => urlSizeOptions.includes(value as (typeof urlSizeOptions)[number]),
+    "Unsupported puzzle size.",
+  ),
+);
+const urlSeedReadSchema = v.pipe(
+  v.string(),
+  v.check((value) => /^\d+$/.test(value), "Seed must be a positive integer."),
+  v.transform((value) => Number(value)),
+  v.integer(),
+  v.minValue(1),
+  v.maxValue(maxUrlSeed),
+);
+const urlSeedWriteSchema = v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(maxUrlSeed));
+const completePuzzleUrlSettingsSchema = v.object({
+  kind: puzzleKindSchema,
+  word: urlWordSchema,
+  cols: urlColsWriteSchema,
+  difficulty: difficultySchema,
+  mazeLetterAmount: mazeLetterAmountSchema,
+  seed: urlSeedWriteSchema,
+});
 
 const directions: DirectionVector[] = [
   { direction: "top", opposite: "bottom", dx: 0, dy: -1 },
@@ -417,6 +486,61 @@ export function languageFromLocales(locales: readonly string[]): PuzzleLanguage 
   }
 
   return defaultLanguage;
+}
+
+export function parsePuzzleSettingsFromUrl(input: string | URLSearchParams): PuzzleUrlSettings {
+  const params = typeof input === "string" ? new URLSearchParams(input) : input;
+  const settings: PuzzleUrlSettings = {};
+  const kind = readUrlParam(params, urlParamNames.kind, puzzleKindSchema);
+  const word = readUrlParam(params, urlParamNames.word, urlWordSchema);
+  const cols = readUrlParam(params, urlParamNames.cols, urlColsReadSchema);
+  const difficulty = readUrlParam(params, urlParamNames.difficulty, difficultySchema);
+  const mazeLetterAmount = readUrlParam(
+    params,
+    urlParamNames.mazeLetterAmount,
+    mazeLetterAmountSchema,
+  );
+  const seed = readUrlParam(params, urlParamNames.seed, urlSeedReadSchema);
+
+  if (kind) {
+    settings.kind = kind;
+  }
+
+  if (word) {
+    settings.word = word;
+  }
+
+  if (cols) {
+    settings.cols = cols;
+  }
+
+  if (difficulty) {
+    settings.difficulty = difficulty;
+  }
+
+  if (mazeLetterAmount) {
+    settings.mazeLetterAmount = mazeLetterAmount;
+  }
+
+  if (seed) {
+    settings.seed = seed;
+  }
+
+  return settings;
+}
+
+export function createPuzzleUrlSearchParams(settings: CompletePuzzleUrlSettings): URLSearchParams {
+  const validSettings = v.parse(completePuzzleUrlSettingsSchema, settings);
+  const params = new URLSearchParams();
+
+  params.set(urlParamNames.kind, validSettings.kind);
+  params.set(urlParamNames.word, validSettings.word);
+  params.set(urlParamNames.cols, String(validSettings.cols));
+  params.set(urlParamNames.difficulty, validSettings.difficulty);
+  params.set(urlParamNames.mazeLetterAmount, validSettings.mazeLetterAmount);
+  params.set(urlParamNames.seed, String(validSettings.seed));
+
+  return params;
 }
 
 export function makeSeed(input = `${Date.now()}:${Math.random()}`): number {
@@ -1987,6 +2111,7 @@ function bindApp(): void {
 
   let currentPuzzle: Puzzle | null = null;
   let showSolution = false;
+  const initialUrlSettings = parsePuzzleSettingsFromUrl(window.location.search);
 
   languageSelect.value = languageFromLocales(
     navigator.languages.length > 0 ? navigator.languages : [navigator.language],
@@ -1998,6 +2123,10 @@ function bindApp(): void {
 
   function currentLabels(): LanguageLabels {
     return languageConfigs[currentLanguage()].labels;
+  }
+
+  function currentMazeLetterAmount(): MazeLetterAmount {
+    return parseMazeLetterAmount(mazeLetterAmountSelect.value);
   }
 
   function renderCurrentPuzzle(): void {
@@ -2013,7 +2142,7 @@ function bindApp(): void {
     renderAnswerBoxes(currentPuzzle, answerBoxes);
   }
 
-  function regenerate(): void {
+  function regenerate(options: { seed?: number; updateUrl?: boolean } = {}): void {
     const language = currentLanguage();
     const labels = languageConfigs[language].labels;
 
@@ -2023,18 +2152,28 @@ function bindApp(): void {
 
     try {
       const wordFeedback = normalizeWordWithFeedback(wordInput.value, language);
-      currentPuzzle = generatePuzzle({
+      const puzzleOptions: GeneratePuzzleOptions = {
         kind: parsePuzzleKind(kindSelect.value),
         language,
         word: wordInput.value,
         cols: Number(sizeSelect.value),
         difficulty: parseDifficulty(difficultySelect.value),
-        mazeLetterAmount: parseMazeLetterAmount(mazeLetterAmountSelect.value),
-      });
+        mazeLetterAmount: currentMazeLetterAmount(),
+      };
+
+      if (options.seed !== undefined) {
+        puzzleOptions.seed = options.seed;
+      }
+
+      currentPuzzle = generatePuzzle(puzzleOptions);
       status.textContent = wordFeedback.removedCharacters
         ? labels.unsupportedCharacters(currentPuzzle.word)
         : "";
       renderCurrentPuzzle();
+
+      if (options.updateUrl ?? true) {
+        updatePuzzleUrl(currentPuzzle);
+      }
     } catch (error) {
       currentPuzzle = null;
       worksheet.textContent = "";
@@ -2048,6 +2187,42 @@ function bindApp(): void {
 
   function updateVariantControls(): void {
     mazeLetterAmountField.hidden = kindSelect.value !== "maze";
+  }
+
+  function applyUrlSettings(settings: PuzzleUrlSettings): void {
+    if (settings.kind) {
+      setSelectValue(kindSelect, settings.kind);
+    }
+
+    if (settings.word) {
+      wordInput.value = settings.word;
+    }
+
+    if (settings.cols) {
+      setSelectValue(sizeSelect, String(settings.cols));
+    }
+
+    if (settings.difficulty) {
+      setSelectValue(difficultySelect, settings.difficulty);
+    }
+
+    if (settings.mazeLetterAmount) {
+      setSelectValue(mazeLetterAmountSelect, settings.mazeLetterAmount);
+    }
+  }
+
+  function updatePuzzleUrl(puzzle: Puzzle): void {
+    const url = new URL(window.location.href);
+
+    url.search = createPuzzleUrlSearchParams({
+      kind: puzzle.kind,
+      word: puzzle.word,
+      cols: puzzle.cols,
+      difficulty: puzzle.difficulty,
+      mazeLetterAmount: currentMazeLetterAmount(),
+      seed: puzzle.seed,
+    }).toString();
+    window.history.replaceState(null, "", url.toString());
   }
 
   function updateLanguageText(): void {
@@ -2080,11 +2255,20 @@ function bindApp(): void {
   }
 
   languageSelect.addEventListener("change", () => {
+    const seed = currentPuzzle?.seed;
+
     updateLanguageText();
-    regenerate();
+    if (seed === undefined) {
+      regenerate();
+    } else {
+      regenerate({ seed });
+    }
   });
-  kindSelect.addEventListener("change", regenerate);
-  generateButton.addEventListener("click", regenerate);
+  kindSelect.addEventListener("change", () => regenerate());
+  sizeSelect.addEventListener("change", () => regenerate());
+  difficultySelect.addEventListener("change", () => regenerate());
+  mazeLetterAmountSelect.addEventListener("change", () => regenerate());
+  generateButton.addEventListener("click", () => regenerate());
   wordInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       regenerate();
@@ -2103,8 +2287,13 @@ function bindApp(): void {
   printButton.addEventListener("click", () => window.print());
 
   updateLanguageText();
+  applyUrlSettings(initialUrlSettings);
   updateVariantControls();
-  regenerate();
+  if (initialUrlSettings.seed === undefined) {
+    regenerate();
+  } else {
+    regenerate({ seed: initialUrlSettings.seed });
+  }
 }
 
 function setOptionText(select: HTMLSelectElement, value: string, label: string): void {
@@ -2113,6 +2302,27 @@ function setOptionText(select: HTMLSelectElement, value: string, label: string):
   if (option) {
     option.textContent = label;
   }
+}
+
+function setSelectValue(select: HTMLSelectElement, value: string): void {
+  if (Array.from(select.options).some((option) => option.value === value)) {
+    select.value = value;
+  }
+}
+
+function readUrlParam<TSchema extends v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>>(
+  params: URLSearchParams,
+  name: string,
+  schema: TSchema,
+): v.InferOutput<TSchema> | undefined {
+  const value = params.get(name);
+
+  if (value === null) {
+    return undefined;
+  }
+
+  const result = v.safeParse(schema, value);
+  return result.success ? result.output : undefined;
 }
 
 function parsePuzzleLanguage(value: string): PuzzleLanguage {

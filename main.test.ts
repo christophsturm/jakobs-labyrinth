@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import {
+  createPuzzleUrlSearchParams,
   generateMazePuzzle,
   generatePuzzle,
   generateWordSearchPuzzle,
@@ -10,6 +11,7 @@ import {
   normalizeWordWithFeedback,
   pathSpellsWord,
   pointKey,
+  parsePuzzleSettingsFromUrl,
   renderAnswerBoxesHtml,
   renderSvg,
   type MazePuzzle,
@@ -62,6 +64,102 @@ describe("languageFromLocales", () => {
     [[], "de"],
   ] satisfies Array<[string[], PuzzleLanguage]>)("maps %j to %s", (locales, expected) => {
     expect(languageFromLocales(locales)).toBe(expected);
+  });
+});
+
+describe("puzzle URL settings", () => {
+  test("serializes all shareable settings except language", () => {
+    const params = createPuzzleUrlSearchParams({
+      kind: "maze",
+      word: "DRACHE",
+      cols: 10,
+      difficulty: "medium",
+      mazeLetterAmount: "many",
+      seed: 4321,
+    });
+
+    expect(Object.fromEntries(params)).toEqual({
+      kind: "maze",
+      word: "DRACHE",
+      size: "10",
+      difficulty: "medium",
+      letters: "many",
+      seed: "4321",
+    });
+    expect(params.has("language")).toBe(false);
+    expect(parsePuzzleSettingsFromUrl(params)).toEqual({
+      kind: "maze",
+      word: "DRACHE",
+      cols: 10,
+      difficulty: "medium",
+      mazeLetterAmount: "many",
+      seed: 4321,
+    });
+  });
+
+  test("validates external URL parameters and ignores invalid values", () => {
+    expect(
+      parsePuzzleSettingsFromUrl(
+        "?kind=nope&word=%20%20&size=999&difficulty=evil&letters=all&seed=-5&language=en",
+      ),
+    ).toEqual({});
+    expect(parsePuzzleSettingsFromUrl("?kind=maze&size=8&seed=4321&language=fr")).toEqual({
+      kind: "maze",
+      cols: 8,
+      seed: 4321,
+    });
+  });
+
+  test("reproduces a maze from parsed URL settings", () => {
+    const settings = parsePuzzleSettingsFromUrl(
+      "?kind=maze&word=DRACHE&size=10&difficulty=medium&letters=normal&seed=4321",
+    );
+
+    if (
+      !settings.kind ||
+      !settings.word ||
+      !settings.cols ||
+      !settings.difficulty ||
+      !settings.mazeLetterAmount ||
+      !settings.seed
+    ) {
+      throw new Error("Expected complete URL settings.");
+    }
+
+    const first = generateMazePuzzle({
+      kind: settings.kind,
+      word: settings.word,
+      cols: settings.cols,
+      difficulty: settings.difficulty,
+      mazeLetterAmount: settings.mazeLetterAmount,
+      seed: settings.seed,
+    });
+    const second = generateMazePuzzle({
+      kind: settings.kind,
+      word: settings.word,
+      cols: settings.cols,
+      difficulty: settings.difficulty,
+      mazeLetterAmount: settings.mazeLetterAmount,
+      seed: settings.seed,
+    });
+
+    expect(second.solutionPath).toEqual(first.solutionPath);
+    expect(second.letters).toEqual(first.letters);
+    expect(second.maze).toEqual(first.maze);
+  });
+
+  test("validates URL settings before writing", () => {
+    const base = {
+      kind: "maze" as const,
+      word: "DRACHE",
+      cols: 10,
+      difficulty: "medium" as const,
+      mazeLetterAmount: "normal" as const,
+      seed: 4321,
+    };
+
+    expect(() => createPuzzleUrlSearchParams({ ...base, cols: 6 })).toThrow();
+    expect(() => createPuzzleUrlSearchParams({ ...base, seed: 0 })).toThrow();
   });
 });
 

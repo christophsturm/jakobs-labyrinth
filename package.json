@@ -15,6 +15,9 @@
     "test": "vitest run",
     "check": "pnpm fmt:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
+  "dependencies": {
+    "valibot": "^1.4.2"
+  },
   "devDependencies": {
     "@types/node": "^26.1.0",
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
