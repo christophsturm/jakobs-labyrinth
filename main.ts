@@ -57,6 +57,13 @@ export type MazePuzzle = BasePuzzle & {
 
 export type Puzzle = WordSearchPuzzle | MazePuzzle;
 
+export type NormalizedWordFeedback = {
+  word: string;
+  changed: boolean;
+  removedCharacters: boolean;
+  hadInput: boolean;
+};
+
 type Random = () => number;
 
 type GeneratePuzzleOptions = {
@@ -106,11 +113,21 @@ const mazeLetterAmountLabels: Record<MazeLetterAmount, string> = {
 };
 
 export function normalizeWord(input: string): string {
-  return input
-    .normalize("NFC")
-    .trim()
-    .toLocaleUpperCase("de-DE")
-    .replace(/[^A-ZÄÖÜ]/g, "");
+  return normalizeWordWithFeedback(input).word;
+}
+
+export function normalizeWordWithFeedback(input: string): NormalizedWordFeedback {
+  const trimmed = input.normalize("NFC").trim();
+  const uppercased = trimmed.toLocaleUpperCase("de-DE");
+  const word = uppercased.replace(/[^A-ZÄÖÜ]/g, "");
+  const removedCharacters = word.length !== uppercased.length;
+
+  return {
+    word,
+    changed: removedCharacters,
+    removedCharacters,
+    hadInput: trimmed.length > 0,
+  };
 }
 
 export function makeSeed(input = `${Date.now()}:${Math.random()}`): number {
@@ -125,11 +142,16 @@ export function makeSeed(input = `${Date.now()}:${Math.random()}`): number {
 }
 
 export function generatePuzzle(options: GeneratePuzzleOptions): Puzzle {
-  if (options.kind === "wordSearch") {
+  const kind = options.kind ?? "maze";
+
+  validatePuzzleKind(kind);
+  validateDifficulty(options.difficulty);
+
+  if (kind === "wordSearch") {
     return generateWordSearchPuzzle(options);
   }
 
-  return generateMazePuzzle({ ...options, kind: "maze" });
+  return generateMazePuzzle({ ...options, kind });
 }
 
 export function generateWordSearchPuzzle(options: GeneratePuzzleOptions): WordSearchPuzzle {
@@ -137,6 +159,7 @@ export function generateWordSearchPuzzle(options: GeneratePuzzleOptions): WordSe
   const rows = options.rows ?? options.cols;
   const { cols, difficulty } = options;
 
+  validateDifficulty(difficulty);
   validatePuzzleInput(word, cols, rows);
 
   const seed = resolveSeed(options, "wordSearch", word, cols, rows, difficulty);
@@ -166,6 +189,7 @@ export function generateMazePuzzle(options: GeneratePuzzleOptions): MazePuzzle {
   const { cols, difficulty } = options;
   const mazeLetterAmount = options.mazeLetterAmount ?? "normal";
 
+  validateDifficulty(difficulty);
   validatePuzzleInput(word, cols, rows);
   validateMazeLetterAmount(mazeLetterAmount);
 
@@ -294,7 +318,7 @@ function resolveSeed(
 
 function validatePuzzleInput(word: string, cols: number, rows: number): void {
   if (!word) {
-    throw new Error("Bitte ein Wort eingeben.");
+    throw new Error("Bitte ein Wort aus Buchstaben A-Z, Ä, Ö oder Ü eingeben.");
   }
 
   if (
@@ -310,6 +334,18 @@ function validatePuzzleInput(word: string, cols: number, rows: number): void {
 
   if (word.length > cols * rows) {
     throw new Error("Das Wort ist zu lang für dieses Raster.");
+  }
+}
+
+function validatePuzzleKind(value: string): asserts value is PuzzleKind {
+  if (value !== "maze" && value !== "wordSearch") {
+    throw new Error("Ungültige Variante.");
+  }
+}
+
+function validateDifficulty(value: string): asserts value is Difficulty {
+  if (value !== "easy" && value !== "medium" && value !== "hard") {
+    throw new Error("Ungültige Schwierigkeit.");
   }
 }
 
@@ -1197,7 +1233,15 @@ function renderWordSearchSvg(puzzle: WordSearchPuzzle, options: { showSolution: 
   }
 
   const solutionLayer = options.showSolution
-    ? `${renderCenteredPolyline(puzzle.solutionPath, cell, padding, "#0b5f3a", 7, 0.58)}
+    ? `${renderCenteredPolyline(
+        puzzle.solutionPath,
+        cell,
+        padding,
+        "#0b5f3a",
+        7,
+        0.58,
+        "solution-layer print-hidden-solution",
+      )}
        ${renderEndpointMarkers(puzzle.solutionPath, cell, padding)}`
     : "";
 
@@ -1250,6 +1294,7 @@ function renderMazeSvg(puzzle: MazePuzzle, options: { showSolution: boolean }): 
           ${
             options.showSolution && isWordLetter
               ? `<rect
+                  class="solution-highlight print-hidden-solution"
                   x="${padding + x * cell + 8}"
                   y="${padding + y * cell + 8}"
                   width="${cell - 16}"
@@ -1266,7 +1311,15 @@ function renderMazeSvg(puzzle: MazePuzzle, options: { showSolution: boolean }): 
   }
 
   const solutionLayer = options.showSolution
-    ? renderCenteredPolyline(puzzle.solutionPath, cell, padding, "#0b5f3a", 12, 0.28)
+    ? renderCenteredPolyline(
+        puzzle.solutionPath,
+        cell,
+        padding,
+        "#0b5f3a",
+        12,
+        0.28,
+        "solution-layer print-hidden-solution",
+      )
     : "";
 
   return `
@@ -1312,13 +1365,16 @@ function renderCenteredPolyline(
   stroke: string,
   strokeWidth: number,
   opacity: number,
+  className?: string,
 ): string {
   const points = path
     .map((point) => `${padding + point.x * cell + cell / 2},${padding + point.y * cell + cell / 2}`)
     .join(" ");
+  const classAttribute = className ? `class="${escapeHtml(className)}"` : "";
 
   return `
     <polyline
+      ${classAttribute}
       points="${points}"
       fill="none"
       stroke="${stroke}"
@@ -1382,8 +1438,8 @@ function renderEndpointMarkers(path: Point[], cell: number, padding: number): st
   }
 
   return `
-    ${renderEndpoint(start, "Start", "#f9d64a", cell, padding)}
-    ${renderEndpoint(end, "Ziel", "#ef7258", cell, padding)}
+    ${renderEndpoint(start, "Start", "#f9d64a", cell, padding, "solution-marker print-hidden-solution")}
+    ${renderEndpoint(end, "Ziel", "#ef7258", cell, padding, "solution-marker print-hidden-solution")}
   `;
 }
 
@@ -1502,12 +1558,14 @@ function renderEndpoint(
   fill: string,
   cell: number,
   padding: number,
+  className?: string,
 ): string {
   const centerX = padding + point.x * cell + cell / 2;
   const centerY = padding + point.y * cell + cell / 2;
+  const classAttribute = className ? `class="${escapeHtml(className)}"` : "";
 
   return `
-    <g>
+    <g ${classAttribute}>
       <circle cx="${centerX}" cy="${centerY}" r="16" fill="${fill}" stroke="#161815" stroke-width="1.4" />
       <text
         x="${centerX}"
@@ -1540,7 +1598,8 @@ function escapeHtml(value: string): string {
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function bindApp(): void {
@@ -1581,14 +1640,17 @@ function bindApp(): void {
     updateVariantControls();
 
     try {
+      const wordFeedback = normalizeWordWithFeedback(wordInput.value);
       currentPuzzle = generatePuzzle({
-        kind: kindSelect.value as PuzzleKind,
+        kind: parsePuzzleKind(kindSelect.value),
         word: wordInput.value,
         cols: Number(sizeSelect.value),
-        difficulty: difficultySelect.value as Difficulty,
-        mazeLetterAmount: mazeLetterAmountSelect.value as MazeLetterAmount,
+        difficulty: parseDifficulty(difficultySelect.value),
+        mazeLetterAmount: parseMazeLetterAmount(mazeLetterAmountSelect.value),
       });
-      status.textContent = "";
+      status.textContent = wordFeedback.removedCharacters
+        ? `Nicht unterstützte Zeichen wurden entfernt. Verwendetes Wort: ${currentPuzzle.word}.`
+        : "";
       renderCurrentPuzzle();
     } catch (error) {
       currentPuzzle = null;
@@ -1627,6 +1689,21 @@ function bindApp(): void {
   regenerate();
 }
 
+function parsePuzzleKind(value: string): PuzzleKind {
+  validatePuzzleKind(value);
+  return value;
+}
+
+function parseDifficulty(value: string): Difficulty {
+  validateDifficulty(value);
+  return value;
+}
+
+function parseMazeLetterAmount(value: string): MazeLetterAmount {
+  validateMazeLetterAmount(value);
+  return value;
+}
+
 function renderWorksheetMeta(puzzle: Puzzle, title: string): string {
   const base = `${title} · ${puzzle.cols} × ${puzzle.rows} · ${difficultyLabels[puzzle.difficulty]}`;
 
@@ -1638,14 +1715,24 @@ function renderWorksheetMeta(puzzle: Puzzle, title: string): string {
 }
 
 function renderAnswerBoxes(puzzle: Puzzle, container: HTMLDivElement): void {
-  if (puzzle.kind !== "maze") {
+  const html = renderAnswerBoxesHtml(puzzle);
+
+  if (!html) {
     container.hidden = true;
     container.textContent = "";
     return;
   }
 
   container.hidden = false;
-  container.innerHTML = `
+  container.innerHTML = html;
+}
+
+export function renderAnswerBoxesHtml(puzzle: Puzzle): string {
+  if (puzzle.kind !== "maze") {
+    return "";
+  }
+
+  return `
     <div class="answer-boxes-label">Lösungswort</div>
     <div class="answer-boxes-cells">
       ${Array.from({ length: puzzle.word.length }, () => '<span class="answer-box"></span>').join("")}

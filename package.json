@@ -10,8 +10,8 @@
     "typecheck": "tsgo --noEmit",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
-    "fmt": "oxfmt index.html main.ts main.test.ts vite.config.ts tsconfig.json package.json .oxlintrc.json .oxfmtrc.json README.md AGENTS.md",
-    "fmt:check": "oxfmt --check index.html main.ts main.test.ts vite.config.ts tsconfig.json package.json .oxlintrc.json .oxfmtrc.json README.md AGENTS.md",
+    "fmt": "oxfmt .",
+    "fmt:check": "oxfmt --check .",
     "test": "vitest run",
     "check": "pnpm fmt:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },

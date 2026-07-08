@@ -1,11 +1,15 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import {
   generateMazePuzzle,
   generatePuzzle,
   generateWordSearchPuzzle,
+  makeSeed,
   normalizeWord,
+  normalizeWordWithFeedback,
   pathSpellsWord,
   pointKey,
+  renderAnswerBoxesHtml,
   renderSvg,
   type MazePuzzle,
   type Point,
@@ -16,6 +20,29 @@ describe("normalizeWord", () => {
   test("keeps German uppercase letters and removes separators", () => {
     expect(normalizeWord("  Eis-Bär 42! ")).toBe("EISBÄR");
     expect(normalizeWord("straße")).toBe("STRASSE");
+  });
+
+  test("reports unsupported characters instead of silently changing the input", () => {
+    expect(normalizeWordWithFeedback("CAFÉ")).toEqual({
+      word: "CAF",
+      changed: true,
+      removedCharacters: true,
+      hadInput: true,
+    });
+    expect(normalizeWordWithFeedback("1234")).toEqual({
+      word: "",
+      changed: true,
+      removedCharacters: true,
+      hadInput: true,
+    });
+  });
+});
+
+describe("makeSeed", () => {
+  test("creates deterministic non-zero seeds", () => {
+    expect(makeSeed("abc")).toBe(makeSeed("abc"));
+    expect(makeSeed("abc")).not.toBe(0);
+    expect(makeSeed("abc")).not.toBe(makeSeed("abd"));
   });
 });
 
@@ -79,7 +106,8 @@ describe("generateMazePuzzle", () => {
     expectMazePathOpen(puzzle);
     expectBoundaryOpening(puzzle, puzzle.entrance);
     expectBoundaryOpening(puzzle, puzzle.exit);
-    expect(countLetters(puzzle.letters)).toBe(12);
+    expect(countLetters(puzzle.letters)).toBeGreaterThan(puzzle.word.length);
+    expect(countLetters(puzzle.letters)).toBeLessThan(puzzle.cols * puzzle.rows);
     expect(countOccupiedColumns(puzzle.letters)).toBeGreaterThanOrEqual(5);
     expect(countOccupiedRows(puzzle.letters)).toBeGreaterThanOrEqual(5);
   });
@@ -99,6 +127,44 @@ describe("generateMazePuzzle", () => {
     expect(countLetters(few.letters)).toBeLessThan(countLetters(normal.letters));
     expect(countLetters(normal.letters)).toBeLessThan(countLetters(many.letters));
     expect(pathSpellsWord(many)).toBe("TOR");
+  });
+
+  test("supports non-square grids through the public API", () => {
+    const puzzle = generateMazePuzzle({
+      kind: "maze",
+      word: "KOMET",
+      cols: 8,
+      rows: 6,
+      difficulty: "hard",
+      seed: 20260708,
+    });
+
+    expect(puzzle.cols).toBe(8);
+    expect(puzzle.rows).toBe(6);
+    expect(pathSpellsWord(puzzle)).toBe("KOMET");
+    expectOrthogonalPath(puzzle.solutionPath);
+    expectMazePathOpen(puzzle);
+    expectBoundaryOpening(puzzle, puzzle.entrance);
+    expectBoundaryOpening(puzzle, puzzle.exit);
+  });
+
+  test("falls back to a full snake maze when the word fills a small grid", () => {
+    const puzzle = generateMazePuzzle({
+      kind: "maze",
+      word: "ABCDEFGHIJKLMNOPQRSTUVWXY",
+      cols: 5,
+      rows: 5,
+      difficulty: "easy",
+      seed: 1,
+    });
+
+    expect(puzzle.solutionPath).toHaveLength(25);
+    expect(new Set(puzzle.solutionPath.map(pointKey))).toHaveLength(25);
+    expect(pathSpellsWord(puzzle)).toBe("ABCDEFGHIJKLMNOPQRSTUVWXY");
+    expectOrthogonalPath(puzzle.solutionPath);
+    expectMazePathOpen(puzzle);
+    expectBoundaryOpening(puzzle, puzzle.entrance);
+    expectBoundaryOpening(puzzle, puzzle.exit);
   });
 
   test("defaults generatePuzzle to the real labyrinth variant", () => {
@@ -123,6 +189,35 @@ describe("validation", () => {
         difficulty: "easy",
       }),
     ).toThrow("zu lang");
+  });
+
+  test("rejects unsupported select values at runtime", () => {
+    expect(() =>
+      generatePuzzle({
+        kind: "circle" as never,
+        word: "TOR",
+        cols: 6,
+        difficulty: "easy",
+      }),
+    ).toThrow("Variante");
+
+    expect(() =>
+      generatePuzzle({
+        word: "TOR",
+        cols: 6,
+        difficulty: "brutal" as never,
+      }),
+    ).toThrow("Schwierigkeit");
+  });
+
+  test("gives a specific message when input contains no supported letters", () => {
+    expect(() =>
+      generatePuzzle({
+        word: "1234",
+        cols: 6,
+        difficulty: "easy",
+      }),
+    ).toThrow("Buchstaben A-Z, Ä, Ö oder Ü");
   });
 });
 
@@ -153,6 +248,7 @@ describe("renderSvg", () => {
 
     expect(svg).toContain("&lt;BAD&gt;");
     expect(svg).toContain("&amp;");
+    expect(renderSvg({ ...puzzle, word: "A'B" }, { showSolution: false })).toContain("A&#39;B");
     expect(svg).not.toContain("<polyline");
   });
 
@@ -177,6 +273,61 @@ describe("renderSvg", () => {
     expect(hidden).not.toContain("<polyline");
     expect(visible).toContain("<polyline");
     expect(countLetters(puzzle.letters)).toBeLessThanOrEqual(3);
+  });
+
+  test("marks maze solution-only SVG elements so print CSS can hide them", () => {
+    const puzzle = generateMazePuzzle({
+      kind: "maze",
+      word: "TOR",
+      cols: 6,
+      difficulty: "easy",
+      seed: 14,
+    });
+
+    const visible = renderSvg(puzzle, { showSolution: true });
+
+    expect(visible).toContain('class="solution-layer print-hidden-solution"');
+    expect(visible).toContain('class="solution-highlight print-hidden-solution"');
+  });
+});
+
+describe("renderAnswerBoxesHtml", () => {
+  test("renders one printable answer box per maze word letter only", () => {
+    const maze = generateMazePuzzle({
+      kind: "maze",
+      word: "DRACHE",
+      cols: 10,
+      difficulty: "medium",
+      seed: 4321,
+    });
+    const wordSearch = generateWordSearchPuzzle({
+      kind: "wordSearch",
+      word: "DRACHE",
+      cols: 10,
+      difficulty: "medium",
+      seed: 4321,
+    });
+
+    expect(renderAnswerBoxesHtml(maze).match(/class="answer-box"/g)).toHaveLength(6);
+    expect(renderAnswerBoxesHtml(wordSearch)).toBe("");
+  });
+});
+
+describe("project configuration", () => {
+  test("formatter scripts scan the project instead of enumerating today's files", () => {
+    const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
+      scripts: Record<string, string>;
+    };
+
+    expect(packageJson.scripts.fmt).toBe("oxfmt .");
+    expect(packageJson.scripts["fmt:check"]).toBe("oxfmt --check .");
+  });
+
+  test("print CSS hides SVG solution layers", () => {
+    const html = readFileSync("index.html", "utf8");
+
+    expect(html).toContain(".print-hidden-solution");
+    expect(html).toMatch(/@media print[\s\S]*\.print-hidden-solution[\s\S]*display:\s*none/);
   });
 });
 

@@ -32,12 +32,17 @@ function singleFileHtml(): Plugin {
 
         const filePattern = escapeRegExp(fileName);
         const code = item.code.replace(/<\/script/gi, "<\\/script");
-
-        html = html.replace(
-          new RegExp(`<script\\b[^>]*\\bsrc=["'][^"']*${filePattern}["'][^>]*>\\s*</script>`, "g"),
-          `<script type="module">\n${code}\n</script>`,
+        const scriptPattern = new RegExp(
+          `<script\\b[^>]*\\bsrc=["'][^"']*${filePattern}["'][^>]*>\\s*</script>`,
+          "g",
         );
+        const nextHtml = html.replace(scriptPattern, `<script type="module">\n${code}\n</script>`);
 
+        if (nextHtml === html) {
+          throw new Error(`Could not inline entry script ${fileName}.`);
+        }
+
+        html = nextHtml;
         delete bundle[fileName];
       }
 
@@ -48,12 +53,17 @@ function singleFileHtml(): Plugin {
 
         const filePattern = escapeRegExp(fileName);
         const css = String(item.source).replace(/<\/style/gi, "<\\/style");
-
-        html = html.replace(
-          new RegExp(`<link\\b[^>]*\\bhref=["'][^"']*${filePattern}["'][^>]*>`, "g"),
-          `<style>\n${css}\n</style>`,
+        const linkPattern = new RegExp(
+          `<link\\b[^>]*\\bhref=["'][^"']*${filePattern}["'][^>]*>`,
+          "g",
         );
+        const nextHtml = html.replace(linkPattern, `<style>\n${css}\n</style>`);
 
+        if (nextHtml === html) {
+          throw new Error(`Could not inline stylesheet ${fileName}.`);
+        }
+
+        html = nextHtml;
         delete bundle[fileName];
       }
 
