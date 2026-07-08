@@ -1980,8 +1980,10 @@ function renderOpeningArrow(
   const inward = openingInwardVector(opening.side);
   const direction = kind === "entrance" ? inward : { dx: -inward.dx, dy: -inward.dy };
   const fill = kind === "entrance" ? "#36a96a" : "#ef7258";
-  const startOffset = kind === "entrance" ? -34 : 18;
-  const tipOffset = kind === "entrance" ? 18 : -34;
+  const outsideLength = 22;
+  const tipInset = 1;
+  const startOffset = kind === "entrance" ? -outsideLength : tipInset;
+  const tipOffset = kind === "entrance" ? tipInset : -outsideLength;
   const start = {
     x: center.x + inward.dx * startOffset,
     y: center.y + inward.dy * startOffset,
@@ -1990,48 +1992,50 @@ function renderOpeningArrow(
     x: center.x + inward.dx * tipOffset,
     y: center.y + inward.dy * tipOffset,
   };
-  const headLength = 13;
-  const headHalf = 8;
+  const headLength = 11;
+  const bodyHalf = 6;
+  const headHalf = 14;
   const shaftEnd = {
     x: tip.x - direction.dx * headLength,
     y: tip.y - direction.dy * headLength,
   };
   const perpendicular = { x: -direction.dy, y: direction.dx };
-  const leftCorner = {
+  const tailLeft = {
+    x: start.x + perpendicular.x * bodyHalf,
+    y: start.y + perpendicular.y * bodyHalf,
+  };
+  const neckLeft = {
+    x: shaftEnd.x + perpendicular.x * bodyHalf,
+    y: shaftEnd.y + perpendicular.y * bodyHalf,
+  };
+  const headLeft = {
     x: shaftEnd.x + perpendicular.x * headHalf,
     y: shaftEnd.y + perpendicular.y * headHalf,
   };
-  const rightCorner = {
+  const headRight = {
     x: shaftEnd.x - perpendicular.x * headHalf,
     y: shaftEnd.y - perpendicular.y * headHalf,
   };
+  const neckRight = {
+    x: shaftEnd.x - perpendicular.x * bodyHalf,
+    y: shaftEnd.y - perpendicular.y * bodyHalf,
+  };
+  const tailRight = {
+    x: start.x - perpendicular.x * bodyHalf,
+    y: start.y - perpendicular.y * bodyHalf,
+  };
   const className = `maze-opening-arrow maze-opening-${kind}`;
+  const points = [tailLeft, neckLeft, headLeft, tip, headRight, neckRight, tailRight]
+    .map((point) => `${point.x},${point.y}`)
+    .join(" ");
 
   return `
     <g class="${className}">
-      <line
-        x1="${start.x}"
-        y1="${start.y}"
-        x2="${shaftEnd.x}"
-        y2="${shaftEnd.y}"
-        stroke="#171a16"
-        stroke-width="12"
-        stroke-linecap="round"
-      />
-      <line
-        x1="${start.x}"
-        y1="${start.y}"
-        x2="${shaftEnd.x}"
-        y2="${shaftEnd.y}"
-        stroke="${fill}"
-        stroke-width="8"
-        stroke-linecap="round"
-      />
       <polygon
-        points="${tip.x},${tip.y} ${leftCorner.x},${leftCorner.y} ${rightCorner.x},${rightCorner.y}"
+        points="${points}"
         fill="${fill}"
         stroke="#171a16"
-        stroke-width="2"
+        stroke-width="2.4"
         stroke-linejoin="round"
       />
     </g>

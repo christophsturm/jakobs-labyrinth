@@ -418,10 +418,12 @@ describe("renderSvg", () => {
   });
 
   test("draws sparse maze letters, opening arrows, and hides the solution line by default", () => {
+    const word = "Gargamelschlumpf";
+    const normalizedWord = "GARGAMELSCHLUMPF";
     const puzzle = generateMazePuzzle({
       kind: "maze",
-      word: "TOR",
-      cols: 6,
+      word,
+      cols: 10,
       difficulty: "easy",
       mazeLetterAmount: "few",
       seed: 14,
@@ -435,11 +437,12 @@ describe("renderSvg", () => {
     expect(hidden).toContain('class="maze-opening-arrow maze-opening-exit"');
     expect(hidden).not.toContain("Eingang");
     expect(hidden).not.toContain("Ausgang");
-    expect(hidden).not.toContain("TOR</title>");
-    expect(hidden).not.toContain("für TOR");
+    expect(hidden).not.toContain(`${normalizedWord}</title>`);
+    expect(hidden).not.toContain(`für ${normalizedWord}`);
     expect(hidden).not.toContain("<polyline");
     expect(visible).toContain("<polyline");
-    expect(countLetters(puzzle.letters)).toBeLessThanOrEqual(3);
+    expect(pathSpellsWord(puzzle)).toBe(normalizedWord);
+    expect(countLetters(puzzle.letters)).toBeLessThanOrEqual(normalizedWord.length);
   });
 
   test("uses localized labels in generated SVG", () => {
