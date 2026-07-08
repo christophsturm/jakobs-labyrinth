@@ -71,6 +71,13 @@ export type NormalizedWordFeedback = {
 
 type Random = () => number;
 
+type IsExactType<Actual, Expected> = [Actual] extends [Expected]
+  ? [Expected] extends [Actual]
+    ? true
+    : false
+  : false;
+type AssertType<T extends true> = T;
+
 type GeneratePuzzleOptions = {
   kind?: PuzzleKind;
   language?: PuzzleLanguage;
@@ -123,8 +130,10 @@ const maxMazeAttempts = 80;
 const maxGridSize = 24;
 const defaultLanguage: PuzzleLanguage = "de";
 const baseAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const puzzleKindOptions = ["maze", "wordSearch"] as const;
+const difficultyOptions = ["easy", "medium", "hard"] as const;
+const mazeLetterAmountOptions = ["few", "normal", "many"] as const;
 const urlSizeOptions = [8, 10, 12] as const;
-const urlSizeOptionStrings = ["8", "10", "12"] as const;
 const maxUrlSeed = 0xffffffff;
 const urlParamNames = {
   kind: "kind",
@@ -135,25 +144,33 @@ const urlParamNames = {
   seed: "seed",
 } as const;
 
-const puzzleKindSchema = v.picklist(["maze", "wordSearch"] as const);
-const difficultySchema = v.picklist(["easy", "medium", "hard"] as const);
-const mazeLetterAmountSchema = v.picklist(["few", "normal", "many"] as const);
+type _PuzzleKindOptionsMatchInternalType = AssertType<
+  IsExactType<(typeof puzzleKindOptions)[number], PuzzleKind>
+>;
+type _DifficultyOptionsMatchInternalType = AssertType<
+  IsExactType<(typeof difficultyOptions)[number], Difficulty>
+>;
+type _MazeLetterAmountOptionsMatchInternalType = AssertType<
+  IsExactType<(typeof mazeLetterAmountOptions)[number], MazeLetterAmount>
+>;
+
+const puzzleKindSchema = v.picklist(puzzleKindOptions);
+const difficultySchema = v.picklist(difficultyOptions);
+const mazeLetterAmountSchema = v.picklist(mazeLetterAmountOptions);
 const urlWordSchema = v.pipe(
   v.string(),
   v.transform((value) => value.trim()),
   v.check((value) => value.length > 0, "Word must not be empty."),
 );
 const urlColsReadSchema = v.pipe(
-  v.picklist(urlSizeOptionStrings),
+  v.string(),
+  v.check(isUrlSizeOptionParam, "Unsupported puzzle size."),
   v.transform((value) => Number(value)),
 );
 const urlColsWriteSchema = v.pipe(
   v.number(),
   v.integer(),
-  v.check(
-    (value) => urlSizeOptions.includes(value as (typeof urlSizeOptions)[number]),
-    "Unsupported puzzle size.",
-  ),
+  v.check(isUrlSizeOption, "Unsupported puzzle size."),
 );
 const urlSeedReadSchema = v.pipe(
   v.string(),
@@ -172,6 +189,18 @@ const completePuzzleUrlSettingsSchema = v.object({
   mazeLetterAmount: mazeLetterAmountSchema,
   seed: urlSeedWriteSchema,
 });
+type _PuzzleKindSchemaMatchesInternalType = AssertType<
+  IsExactType<v.InferOutput<typeof puzzleKindSchema>, PuzzleKind>
+>;
+type _DifficultySchemaMatchesInternalType = AssertType<
+  IsExactType<v.InferOutput<typeof difficultySchema>, Difficulty>
+>;
+type _MazeLetterAmountSchemaMatchesInternalType = AssertType<
+  IsExactType<v.InferOutput<typeof mazeLetterAmountSchema>, MazeLetterAmount>
+>;
+type _CompletePuzzleUrlSettingsSchemaMatchesInternalType = AssertType<
+  IsExactType<v.InferOutput<typeof completePuzzleUrlSettingsSchema>, CompletePuzzleUrlSettings>
+>;
 
 const directions: DirectionVector[] = [
   { direction: "top", opposite: "bottom", dx: 0, dy: -1 },
@@ -826,6 +855,14 @@ function validatePuzzleLanguage(value: string): asserts value is PuzzleLanguage 
 
 function isPuzzleLanguage(value: string): value is PuzzleLanguage {
   return value === "de" || value === "en" || value === "it" || value === "fr";
+}
+
+function isUrlSizeOption(value: number): boolean {
+  return urlSizeOptions.some((option) => option === value);
+}
+
+function isUrlSizeOptionParam(value: string): boolean {
+  return urlSizeOptions.some((option) => String(option) === value);
 }
 
 function validateMazeLetterAmount(value: string): asserts value is MazeLetterAmount {
