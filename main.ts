@@ -100,6 +100,16 @@ export type CompletePuzzleUrlSettings = {
   seed: number;
 };
 
+export type PuzzleUrlParseResult = {
+  settings: PuzzleUrlSettings;
+  invalidParams: PuzzleUrlInvalidParam[];
+};
+
+export type PuzzleUrlInvalidParam = {
+  name: string;
+  value: string;
+};
+
 type DirectionVector = {
   direction: Direction;
   opposite: Direction;
@@ -190,6 +200,7 @@ type LanguageLabels = {
   wordMeta: string;
   lettersMeta: string;
   answerWord: string;
+  urlSettingsAdjusted: (details: string) => string;
   invalidWord: string;
   unsupportedCharacters: (word: string) => string;
   gridSize: (max: number) => string;
@@ -241,6 +252,7 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       wordMeta: "Wort",
       lettersMeta: "Buchstaben",
       answerWord: "Lösungswort",
+      urlSettingsAdjusted: (details) => `Ungültige Link-Werte korrigiert: ${details}.`,
       invalidWord: "Bitte ein Wort aus Buchstaben A-Z, Ä, Ö oder Ü eingeben.",
       unsupportedCharacters: (word) =>
         `Nicht unterstützte Zeichen wurden entfernt. Verwendetes Wort: ${word}.`,
@@ -299,6 +311,7 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       wordMeta: "Word",
       lettersMeta: "Letters",
       answerWord: "Solution word",
+      urlSettingsAdjusted: (details) => `Invalid link values corrected: ${details}.`,
       invalidWord: "Please enter a word using letters A-Z.",
       unsupportedCharacters: (word) => `Unsupported characters were removed. Used word: ${word}.`,
       gridSize: (max) => `The grid must be between 4 and ${max} cells wide.`,
@@ -356,6 +369,7 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       wordMeta: "Parola",
       lettersMeta: "Lettere",
       answerWord: "Parola soluzione",
+      urlSettingsAdjusted: (details) => `Valori non validi del link corretti: ${details}.`,
       invalidWord: "Inserisci una parola con lettere A-Z.",
       unsupportedCharacters: (word) =>
         `I caratteri non supportati sono stati rimossi. Parola usata: ${word}.`,
@@ -414,6 +428,7 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       wordMeta: "Mot",
       lettersMeta: "Lettres",
       answerWord: "Mot solution",
+      urlSettingsAdjusted: (details) => `Valeurs invalides du lien corrigées : ${details}.`,
       invalidWord: "Saisir un mot avec les lettres A-Z.",
       unsupportedCharacters: (word) =>
         `Les caractères non pris en charge ont été retirés. Mot utilisé : ${word}.`,
@@ -489,18 +504,31 @@ export function languageFromLocales(locales: readonly string[]): PuzzleLanguage 
 }
 
 export function parsePuzzleSettingsFromUrl(input: string | URLSearchParams): PuzzleUrlSettings {
+  return parsePuzzleSettingsFromUrlWithIssues(input).settings;
+}
+
+export function parsePuzzleSettingsFromUrlWithIssues(
+  input: string | URLSearchParams,
+): PuzzleUrlParseResult {
   const params = typeof input === "string" ? new URLSearchParams(input) : input;
   const settings: PuzzleUrlSettings = {};
-  const kind = readUrlParam(params, urlParamNames.kind, puzzleKindSchema);
-  const word = readUrlParam(params, urlParamNames.word, urlWordSchema);
-  const cols = readUrlParam(params, urlParamNames.cols, urlColsReadSchema);
-  const difficulty = readUrlParam(params, urlParamNames.difficulty, difficultySchema);
+  const invalidParams: PuzzleUrlInvalidParam[] = [];
+  const kind = readUrlParam(params, urlParamNames.kind, puzzleKindSchema, invalidParams);
+  const word = readUrlParam(params, urlParamNames.word, urlWordSchema, invalidParams);
+  const cols = readUrlParam(params, urlParamNames.cols, urlColsReadSchema, invalidParams);
+  const difficulty = readUrlParam(
+    params,
+    urlParamNames.difficulty,
+    difficultySchema,
+    invalidParams,
+  );
   const mazeLetterAmount = readUrlParam(
     params,
     urlParamNames.mazeLetterAmount,
     mazeLetterAmountSchema,
+    invalidParams,
   );
-  const seed = readUrlParam(params, urlParamNames.seed, urlSeedReadSchema);
+  const seed = readUrlParam(params, urlParamNames.seed, urlSeedReadSchema, invalidParams);
 
   if (kind) {
     settings.kind = kind;
@@ -526,7 +554,7 @@ export function parsePuzzleSettingsFromUrl(input: string | URLSearchParams): Puz
     settings.seed = seed;
   }
 
-  return settings;
+  return { settings, invalidParams };
 }
 
 export function createPuzzleUrlSearchParams(settings: CompletePuzzleUrlSettings): URLSearchParams {
@@ -2111,7 +2139,8 @@ function bindApp(): void {
 
   let currentPuzzle: Puzzle | null = null;
   let showSolution = false;
-  const initialUrlSettings = parsePuzzleSettingsFromUrl(window.location.search);
+  const initialUrlSettingsResult = parsePuzzleSettingsFromUrlWithIssues(window.location.search);
+  const initialUrlSettings = initialUrlSettingsResult.settings;
 
   languageSelect.value = languageFromLocales(
     navigator.languages.length > 0 ? navigator.languages : [navigator.language],
@@ -2142,7 +2171,13 @@ function bindApp(): void {
     renderAnswerBoxes(currentPuzzle, answerBoxes);
   }
 
-  function regenerate(options: { seed?: number; updateUrl?: boolean } = {}): void {
+  function regenerate(
+    options: {
+      seed?: number;
+      updateUrl?: boolean;
+      invalidUrlParams?: readonly PuzzleUrlInvalidParam[];
+    } = {},
+  ): void {
     const language = currentLanguage();
     const labels = languageConfigs[language].labels;
 
@@ -2166,9 +2201,17 @@ function bindApp(): void {
       }
 
       currentPuzzle = generatePuzzle(puzzleOptions);
-      status.textContent = wordFeedback.removedCharacters
-        ? labels.unsupportedCharacters(currentPuzzle.word)
-        : "";
+
+      const invalidUrlParams = options.invalidUrlParams ?? [];
+      const messages = [
+        ...(invalidUrlParams.length > 0
+          ? [labels.urlSettingsAdjusted(formatInvalidUrlParams(invalidUrlParams, labels))]
+          : []),
+        ...(wordFeedback.removedCharacters
+          ? [labels.unsupportedCharacters(currentPuzzle.word)]
+          : []),
+      ];
+      status.textContent = messages.join(" ");
       renderCurrentPuzzle();
 
       if (options.updateUrl ?? true) {
@@ -2290,9 +2333,12 @@ function bindApp(): void {
   applyUrlSettings(initialUrlSettings);
   updateVariantControls();
   if (initialUrlSettings.seed === undefined) {
-    regenerate();
+    regenerate({ invalidUrlParams: initialUrlSettingsResult.invalidParams });
   } else {
-    regenerate({ seed: initialUrlSettings.seed });
+    regenerate({
+      seed: initialUrlSettings.seed,
+      invalidUrlParams: initialUrlSettingsResult.invalidParams,
+    });
   }
 }
 
@@ -2310,10 +2356,37 @@ function setSelectValue(select: HTMLSelectElement, value: string): void {
   }
 }
 
+function formatInvalidUrlParams(
+  invalidParams: readonly PuzzleUrlInvalidParam[],
+  labels: LanguageLabels,
+): string {
+  const paramLabels: Record<string, string> = {
+    [urlParamNames.kind]: labels.kindField,
+    [urlParamNames.word]: labels.wordField,
+    [urlParamNames.cols]: labels.sizeField,
+    [urlParamNames.difficulty]: labels.difficultyField,
+    [urlParamNames.mazeLetterAmount]: labels.mazeLetterAmountField,
+    [urlParamNames.seed]: "Seed",
+  };
+
+  return invalidParams
+    .map(
+      (param) =>
+        `${paramLabels[param.name] ?? param.name} (${param.name}=${formatUrlParamValue(param.value)})`,
+    )
+    .join(", ");
+}
+
+function formatUrlParamValue(value: string): string {
+  const truncated = value.length > 32 ? `${value.slice(0, 29)}...` : value;
+  return truncated.trim().length > 0 ? truncated : JSON.stringify(truncated);
+}
+
 function readUrlParam<TSchema extends v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>>(
   params: URLSearchParams,
   name: string,
   schema: TSchema,
+  invalidParams: PuzzleUrlInvalidParam[],
 ): v.InferOutput<TSchema> | undefined {
   const value = params.get(name);
 
@@ -2322,7 +2395,13 @@ function readUrlParam<TSchema extends v.BaseSchema<unknown, unknown, v.BaseIssue
   }
 
   const result = v.safeParse(schema, value);
-  return result.success ? result.output : undefined;
+
+  if (result.success) {
+    return result.output;
+  }
+
+  invalidParams.push({ name, value });
+  return undefined;
 }
 
 function parsePuzzleLanguage(value: string): PuzzleLanguage {

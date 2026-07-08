@@ -12,6 +12,7 @@ import {
   pathSpellsWord,
   pointKey,
   parsePuzzleSettingsFromUrl,
+  parsePuzzleSettingsFromUrlWithIssues,
   renderAnswerBoxesHtml,
   renderSvg,
   type MazePuzzle,
@@ -107,6 +108,29 @@ describe("puzzle URL settings", () => {
       kind: "maze",
       cols: 8,
       seed: 4321,
+    });
+  });
+
+  test("reports invalid known URL parameters while preserving valid ones", () => {
+    expect(
+      parsePuzzleSettingsFromUrlWithIssues(
+        "?kind=nope&word=DRACHE&size=999&difficulty=medium&letters=all&seed=4321&language=en",
+      ),
+    ).toEqual({
+      settings: {
+        word: "DRACHE",
+        difficulty: "medium",
+        seed: 4321,
+      },
+      invalidParams: [
+        { name: "kind", value: "nope" },
+        { name: "size", value: "999" },
+        { name: "letters", value: "all" },
+      ],
+    });
+    expect(parsePuzzleSettingsFromUrlWithIssues("?language=fr&theme=dark")).toEqual({
+      settings: {},
+      invalidParams: [],
     });
   });
 
