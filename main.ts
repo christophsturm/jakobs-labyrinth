@@ -2,6 +2,8 @@ export type Difficulty = "easy" | "medium" | "hard";
 
 export type PuzzleKind = "maze" | "wordSearch";
 
+export type MazeLetterAmount = "few" | "normal" | "many";
+
 export type Point = {
   x: number;
   y: number;
@@ -45,6 +47,7 @@ export type MazeCell = {
 
 export type MazePuzzle = BasePuzzle & {
   kind: "maze";
+  mazeLetterAmount: MazeLetterAmount;
   maze: MazeCell[][];
   start: Point;
   end: Point;
@@ -62,6 +65,7 @@ type GeneratePuzzleOptions = {
   cols: number;
   rows?: number;
   difficulty: Difficulty;
+  mazeLetterAmount?: MazeLetterAmount;
   seed?: number;
 };
 
@@ -93,6 +97,12 @@ const difficultyLabels: Record<Difficulty, string> = {
 const puzzleKindLabels: Record<PuzzleKind, string> = {
   maze: "Buchstabenlabyrinth",
   wordSearch: "Wortsuchbild",
+};
+
+const mazeLetterAmountLabels: Record<MazeLetterAmount, string> = {
+  few: "Wenig",
+  normal: "Mehr",
+  many: "Viele",
 };
 
 export function normalizeWord(input: string): string {
@@ -154,10 +164,12 @@ export function generateMazePuzzle(options: GeneratePuzzleOptions): MazePuzzle {
   const word = normalizeWord(options.word);
   const rows = options.rows ?? options.cols;
   const { cols, difficulty } = options;
+  const mazeLetterAmount = options.mazeLetterAmount ?? "normal";
 
   validatePuzzleInput(word, cols, rows);
+  validateMazeLetterAmount(mazeLetterAmount);
 
-  const seed = resolveSeed(options, "maze", word, cols, rows, difficulty);
+  const seed = resolveSeed(options, "maze", word, cols, rows, difficulty, mazeLetterAmount);
   const rng = createRandom(seed);
   let maze = createMazeGrid(cols, rows);
   let solutionPath: Point[] = [];
@@ -205,7 +217,15 @@ export function generateMazePuzzle(options: GeneratePuzzleOptions): MazePuzzle {
   const letters = createEmptyGrid(cols, rows);
 
   placeWordLetters(letters, word, wordLetterPoints);
-  placeMazeDistractorLetters(letters, word, solutionPath, wordLetterPoints, difficulty, rng);
+  placeMazeDistractorLetters(
+    letters,
+    word,
+    solutionPath,
+    wordLetterPoints,
+    difficulty,
+    mazeLetterAmount,
+    rng,
+  );
 
   const start = solutionPath[0];
   const end = solutionPath[solutionPath.length - 1];
@@ -222,6 +242,7 @@ export function generateMazePuzzle(options: GeneratePuzzleOptions): MazePuzzle {
 
   return {
     kind: "maze",
+    mazeLetterAmount,
     word,
     cols,
     rows,
@@ -261,10 +282,13 @@ function resolveSeed(
   cols: number,
   rows: number,
   difficulty: Difficulty,
+  mazeLetterAmount?: MazeLetterAmount,
 ): number {
   return (
     options.seed ??
-    makeSeed(`${kind}:${word}:${cols}:${rows}:${difficulty}:${Date.now()}:${Math.random()}`)
+    makeSeed(
+      `${kind}:${word}:${cols}:${rows}:${difficulty}:${mazeLetterAmount ?? "n/a"}:${Date.now()}:${Math.random()}`,
+    )
   );
 }
 
@@ -286,6 +310,12 @@ function validatePuzzleInput(word: string, cols: number, rows: number): void {
 
   if (word.length > cols * rows) {
     throw new Error("Das Wort ist zu lang für dieses Raster.");
+  }
+}
+
+function validateMazeLetterAmount(value: string): asserts value is MazeLetterAmount {
+  if (value !== "few" && value !== "normal" && value !== "many") {
+    throw new Error("Ungültige Buchstabenmenge für das Labyrinth.");
   }
 }
 
@@ -357,12 +387,25 @@ function placeMazeDistractorLetters(
   solutionPath: Point[],
   wordLetterPoints: Point[],
   difficulty: Difficulty,
+  mazeLetterAmount: MazeLetterAmount,
   rng: Random,
 ): void {
-  const distractorCounts: Record<Difficulty, number> = {
-    easy: 0,
-    medium: Math.ceil(word.length * 0.45),
-    hard: Math.ceil(word.length * 0.9),
+  const distractorMultipliers: Record<MazeLetterAmount, Record<Difficulty, number>> = {
+    few: {
+      easy: 0,
+      medium: 0.45,
+      hard: 0.9,
+    },
+    normal: {
+      easy: 0.5,
+      medium: 1,
+      hard: 1.5,
+    },
+    many: {
+      easy: 1,
+      medium: 1.75,
+      hard: 2.5,
+    },
   };
   const reserved = new Set(solutionPath.map(pointKey));
   const wordKeys = new Set(wordLetterPoints.map(pointKey));
@@ -385,18 +428,66 @@ function placeMazeDistractorLetters(
     }
   }
 
-  const shuffled = shuffle(candidates, rng);
-  const count = Math.min(distractorCounts[difficulty], shuffled.length);
+  const count = Math.min(
+    Math.ceil(word.length * distractorMultipliers[mazeLetterAmount][difficulty]),
+    candidates.length,
+  );
+  const selected = selectDistributedPoints(candidates, count, wordLetterPoints, rng);
 
-  for (let index = 0; index < count; index += 1) {
-    const point = shuffled[index];
+  for (const point of selected) {
+    letters[point.y]![point.x] = randomFillerLetter(word, difficulty, rng);
+  }
+}
+
+function selectDistributedPoints(
+  candidates: Point[],
+  count: number,
+  anchors: Point[],
+  rng: Random,
+): Point[] {
+  const available = [...candidates];
+  const placed = [...anchors];
+  const selected: Point[] = [];
+
+  while (selected.length < count && available.length > 0) {
+    let bestIndex = 0;
+    let bestScore = Number.NEGATIVE_INFINITY;
+
+    for (let index = 0; index < available.length; index += 1) {
+      const point = available[index];
+
+      if (!point) {
+        continue;
+      }
+
+      const nearestDistance =
+        placed.length > 0 ? Math.min(...placed.map((anchor) => squaredDistance(point, anchor))) : 0;
+      const score = nearestDistance + rng() * 0.35;
+
+      if (score > bestScore) {
+        bestIndex = index;
+        bestScore = score;
+      }
+    }
+
+    const [point] = available.splice(bestIndex, 1);
 
     if (!point) {
       continue;
     }
 
-    letters[point.y]![point.x] = randomFillerLetter(word, difficulty, rng);
+    selected.push(point);
+    placed.push(point);
   }
+
+  return selected;
+}
+
+function squaredDistance(first: Point, second: Point): number {
+  const dx = first.x - second.x;
+  const dy = first.y - second.y;
+
+  return dx * dx + dy * dy;
 }
 
 function randomFillerLetter(word: string, difficulty: Difficulty, rng: Random): string {
@@ -1184,10 +1275,10 @@ function renderMazeSvg(puzzle: MazePuzzle, options: { showSolution: boolean }): 
       width="${width}"
       height="${height}"
       role="img"
-      aria-label="${puzzleKindLabels.maze} für ${escapeHtml(puzzle.word)}"
+      aria-label="${puzzleKindLabels.maze}"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <title>${puzzleKindLabels.maze} für ${escapeHtml(puzzle.word)}</title>
+      <title>${puzzleKindLabels.maze}</title>
       <desc>Ein Labyrinth mit Mauern, ${puzzle.cols} mal ${puzzle.rows} Felder, Schwierigkeit ${escapeHtml(
         difficultyLabels[puzzle.difficulty],
       )}</desc>
@@ -1457,12 +1548,15 @@ function bindApp(): void {
   const wordInput = byId<HTMLInputElement>("word");
   const sizeSelect = byId<HTMLSelectElement>("size");
   const difficultySelect = byId<HTMLSelectElement>("difficulty");
+  const mazeLetterAmountField = byId<HTMLLabelElement>("maze-letter-amount-field");
+  const mazeLetterAmountSelect = byId<HTMLSelectElement>("maze-letter-amount");
   const generateButton = byId<HTMLButtonElement>("generate");
   const toggleSolutionButton = byId<HTMLButtonElement>("toggle-solution");
   const printButton = byId<HTMLButtonElement>("print");
   const worksheet = byId<HTMLDivElement>("worksheet");
   const worksheetMeta = byId<HTMLDivElement>("worksheet-meta");
   const printTitle = byId<HTMLHeadingElement>("print-title");
+  const answerBoxes = byId<HTMLDivElement>("answer-boxes");
   const status = byId<HTMLParagraphElement>("status");
 
   let currentPuzzle: Puzzle | null = null;
@@ -1477,14 +1571,14 @@ function bindApp(): void {
 
     worksheet.innerHTML = renderSvg(currentPuzzle, { showSolution });
     printTitle.textContent = title;
-    worksheetMeta.textContent = `${title} · Wort: ${currentPuzzle.word} · ${currentPuzzle.cols} × ${
-      currentPuzzle.rows
-    } · ${difficultyLabels[currentPuzzle.difficulty]}`;
+    worksheetMeta.textContent = renderWorksheetMeta(currentPuzzle, title);
+    renderAnswerBoxes(currentPuzzle, answerBoxes);
   }
 
   function regenerate(): void {
     showSolution = false;
     toggleSolutionButton.textContent = "Lösung anzeigen";
+    updateVariantControls();
 
     try {
       currentPuzzle = generatePuzzle({
@@ -1492,6 +1586,7 @@ function bindApp(): void {
         word: wordInput.value,
         cols: Number(sizeSelect.value),
         difficulty: difficultySelect.value as Difficulty,
+        mazeLetterAmount: mazeLetterAmountSelect.value as MazeLetterAmount,
       });
       status.textContent = "";
       renderCurrentPuzzle();
@@ -1499,9 +1594,15 @@ function bindApp(): void {
       currentPuzzle = null;
       worksheet.textContent = "";
       worksheetMeta.textContent = "";
+      answerBoxes.hidden = true;
+      answerBoxes.textContent = "";
       printTitle.textContent = "Buchstabenlabyrinth";
       status.textContent = error instanceof Error ? error.message : "Fehler beim Erzeugen.";
     }
+  }
+
+  function updateVariantControls(): void {
+    mazeLetterAmountField.hidden = kindSelect.value !== "maze";
   }
 
   kindSelect.addEventListener("change", regenerate);
@@ -1522,7 +1623,34 @@ function bindApp(): void {
   });
   printButton.addEventListener("click", () => window.print());
 
+  updateVariantControls();
   regenerate();
+}
+
+function renderWorksheetMeta(puzzle: Puzzle, title: string): string {
+  const base = `${title} · ${puzzle.cols} × ${puzzle.rows} · ${difficultyLabels[puzzle.difficulty]}`;
+
+  if (puzzle.kind === "maze") {
+    return `${base} · Buchstaben: ${mazeLetterAmountLabels[puzzle.mazeLetterAmount]}`;
+  }
+
+  return `${base} · Wort: ${puzzle.word}`;
+}
+
+function renderAnswerBoxes(puzzle: Puzzle, container: HTMLDivElement): void {
+  if (puzzle.kind !== "maze") {
+    container.hidden = true;
+    container.textContent = "";
+    return;
+  }
+
+  container.hidden = false;
+  container.innerHTML = `
+    <div class="answer-boxes-label">Lösungswort</div>
+    <div class="answer-boxes-cells">
+      ${Array.from({ length: puzzle.word.length }, () => '<span class="answer-box"></span>').join("")}
+    </div>
+  `;
 }
 
 function byId<T extends HTMLElement>(id: string): T {

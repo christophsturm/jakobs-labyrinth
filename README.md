@@ -8,7 +8,7 @@ Es gibt zwei Varianten:
 
 - `Labyrinth`: ein echtes Labyrinth mit Mauern, Eingang und Ausgang. Nur an
   manchen Stellen liegen Buchstaben; der richtige Weg führt in Reihenfolge am
-  Lösungswort vorbei.
+  Lösungswort vorbei. Die Buchstabenmenge ist separat einstellbar.
 - `Wortsuchbild`: die ursprüngliche Version mit Buchstabenraster und
   markierbarem Lösungspfad.
 
@@ -60,8 +60,11 @@ im Browser geöffnet werden.
 1. Variante wählen.
 2. Lösungswort eingeben.
 3. Größe und Schwierigkeit wählen.
-4. `Neu erzeugen` klicken.
-5. Optional `Lösung anzeigen`.
-6. Über `Drucken` den Browser-Druckdialog öffnen.
+4. Beim Labyrinth optional die Buchstabenmenge wählen.
+5. `Neu erzeugen` klicken.
+6. Optional `Lösung anzeigen`.
+7. Über `Drucken` den Browser-Druckdialog öffnen.
 
-Der Druckdialog kann auch zum Speichern als PDF verwendet werden.
+Beim gedruckten Labyrinth steht das Lösungswort nicht in der Kopfzeile. Dafür
+werden leere Kästchen zum Eintragen des gefundenen Wortes gedruckt. Der
+Druckdialog kann auch zum Speichern als PDF verwendet werden.

@@ -79,7 +79,26 @@ describe("generateMazePuzzle", () => {
     expectMazePathOpen(puzzle);
     expectBoundaryOpening(puzzle, puzzle.entrance);
     expectBoundaryOpening(puzzle, puzzle.exit);
-    expect(countLetters(puzzle.letters)).toBeLessThanOrEqual(9);
+    expect(countLetters(puzzle.letters)).toBe(12);
+    expect(countOccupiedColumns(puzzle.letters)).toBeGreaterThanOrEqual(5);
+    expect(countOccupiedRows(puzzle.letters)).toBeGreaterThanOrEqual(5);
+  });
+
+  test("supports a maze-only letter amount setting", () => {
+    const base = {
+      kind: "maze" as const,
+      word: "TOR",
+      cols: 8,
+      difficulty: "medium" as const,
+      seed: 99,
+    };
+    const few = generateMazePuzzle({ ...base, mazeLetterAmount: "few" });
+    const normal = generateMazePuzzle({ ...base, mazeLetterAmount: "normal" });
+    const many = generateMazePuzzle({ ...base, mazeLetterAmount: "many" });
+
+    expect(countLetters(few.letters)).toBeLessThan(countLetters(normal.letters));
+    expect(countLetters(normal.letters)).toBeLessThan(countLetters(many.letters));
+    expect(pathSpellsWord(many)).toBe("TOR");
   });
 
   test("defaults generatePuzzle to the real labyrinth variant", () => {
@@ -143,6 +162,7 @@ describe("renderSvg", () => {
       word: "TOR",
       cols: 6,
       difficulty: "easy",
+      mazeLetterAmount: "few",
       seed: 14,
     });
 
@@ -152,6 +172,8 @@ describe("renderSvg", () => {
     expect(hidden).toContain("<line");
     expect(hidden).toContain("Eingang");
     expect(hidden).toContain("Ausgang");
+    expect(hidden).not.toContain("TOR</title>");
+    expect(hidden).not.toContain("für TOR");
     expect(hidden).not.toContain("<polyline");
     expect(visible).toContain("<polyline");
     expect(countLetters(puzzle.letters)).toBeLessThanOrEqual(3);
@@ -235,4 +257,28 @@ function expectBoundaryOpening(puzzle: MazePuzzle, opening: MazePuzzle["entrance
 
 function countLetters(letters: string[][]): number {
   return letters.flat().filter(Boolean).length;
+}
+
+function countOccupiedColumns(letters: string[][]): number {
+  const columns = new Set<number>();
+
+  for (let y = 0; y < letters.length; y += 1) {
+    const row = letters[y];
+
+    if (!row) {
+      continue;
+    }
+
+    for (let x = 0; x < row.length; x += 1) {
+      if (row[x]) {
+        columns.add(x);
+      }
+    }
+  }
+
+  return columns.size;
+}
+
+function countOccupiedRows(letters: string[][]): number {
+  return letters.filter((row) => row.some(Boolean)).length;
 }

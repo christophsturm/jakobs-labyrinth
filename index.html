@@ -98,6 +98,10 @@
         box-shadow: 0 0 0 3px rgb(249 214 74 / 28%);
       }
 
+      [hidden] {
+        display: none !important;
+      }
+
       .button-row {
         display: grid;
         gap: 8px;
@@ -170,6 +174,10 @@
       }
 
       .print-fields {
+        display: none;
+      }
+
+      .answer-boxes {
         display: none;
       }
 
@@ -259,6 +267,32 @@
           border-bottom: 1pt solid #000;
         }
 
+        .answer-boxes {
+          display: grid;
+          gap: 3mm;
+          justify-items: center;
+          margin: 7mm auto 0;
+          page-break-inside: avoid;
+        }
+
+        .answer-boxes-label {
+          font-size: 11pt;
+          font-weight: 700;
+        }
+
+        .answer-boxes-cells {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 2mm;
+          justify-content: center;
+        }
+
+        .answer-box {
+          width: 10mm;
+          height: 10mm;
+          border: 1pt solid #000;
+        }
+
         #worksheet {
           overflow: visible;
         }
@@ -307,6 +341,15 @@
               <option value="hard">Schwer</option>
             </select>
           </label>
+
+          <label id="maze-letter-amount-field">
+            Buchstabenmenge
+            <select id="maze-letter-amount">
+              <option value="few">Wenig</option>
+              <option value="normal" selected>Mehr</option>
+              <option value="many">Viele</option>
+            </select>
+          </label>
         </div>
 
         <div class="button-row">
@@ -328,6 +371,7 @@
           <span>Datum</span>
         </div>
         <div id="worksheet"></div>
+        <div id="answer-boxes" class="answer-boxes" aria-hidden="true"></div>
       </main>
     </div>
 

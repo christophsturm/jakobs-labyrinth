@@ -19,7 +19,10 @@ Produkt soll eine einzelne HTML-Datei bleiben: `dist/index.html`.
   bleiben.
 - Die Standardvariante `Labyrinth` ist ein echtes Maze mit SVG-Linien als
   Mauern, Eingang und Ausgang. Anders als beim `Wortsuchbild` bleiben die
-  meisten Zellen leer; nur Wortbuchstaben und wenige Ablenker werden gesetzt.
+  meisten Zellen leer; nur Wortbuchstaben und einstellbar viele Ablenker werden
+  gesetzt.
+- Beim gedruckten Labyrinth darf das Lösungswort nicht sichtbar sein; stattdessen
+  werden leere Antwortkästchen gedruckt.
 
 ## Qualitätscheck
 
