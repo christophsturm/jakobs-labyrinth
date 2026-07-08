@@ -1,8 +1,16 @@
 # Buchstabenlabyrinth
 
-Ein kleines Browser-Tool zum Erzeugen und Drucken von Buchstabenlabyrinthen.
-Die Entwicklung läuft mit Vite und TypeScript; der Produktionsbuild erzeugt
-eine einzelne, self-contained HTML-Datei.
+Ein kleines Browser-Tool zum Erzeugen und Drucken von Buchstabenrätseln. Die
+Entwicklung läuft mit Vite und TypeScript; der Produktionsbuild erzeugt eine
+einzige, self-contained HTML-Datei.
+
+Es gibt zwei Varianten:
+
+- `Labyrinth`: ein echtes Labyrinth mit Mauern, Eingang und Ausgang. Nur an
+  manchen Stellen liegen Buchstaben; der richtige Weg führt in Reihenfolge am
+  Lösungswort vorbei.
+- `Wortsuchbild`: die ursprüngliche Version mit Buchstabenraster und
+  markierbarem Lösungspfad.
 
 ## Setup
 
@@ -49,10 +57,11 @@ im Browser geöffnet werden.
 
 ## Bedienung
 
-1. Lösungswort eingeben.
-2. Größe und Schwierigkeit wählen.
-3. `Neu erzeugen` klicken.
-4. Optional `Lösung anzeigen`.
-5. Über `Drucken` den Browser-Druckdialog öffnen.
+1. Variante wählen.
+2. Lösungswort eingeben.
+3. Größe und Schwierigkeit wählen.
+4. `Neu erzeugen` klicken.
+5. Optional `Lösung anzeigen`.
+6. Über `Drucken` den Browser-Druckdialog öffnen.
 
 Der Druckdialog kann auch zum Speichern als PDF verwendet werden.

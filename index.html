@@ -278,6 +278,14 @@
 
         <div class="control-group">
           <label>
+            Variante
+            <select id="kind">
+              <option value="maze" selected>Labyrinth</option>
+              <option value="wordSearch">Wortsuchbild</option>
+            </select>
+          </label>
+
+          <label>
             Lösungswort
             <input id="word" value="DRACHE" autocomplete="off" />
           </label>
@@ -312,7 +320,7 @@
 
       <main class="worksheet">
         <header class="sheet-header">
-          <h1 class="print-title">Buchstabenlabyrinth</h1>
+          <h1 id="print-title" class="print-title">Buchstabenlabyrinth</h1>
           <div id="worksheet-meta" class="worksheet-meta"></div>
         </header>
         <div class="print-fields" aria-hidden="true">

@@ -15,6 +15,11 @@ Produkt soll eine einzelne HTML-Datei bleiben: `dist/index.html`.
 - Keine Deno- oder PDF-Generator-Abhängigkeiten hinzufügen. Drucken und
   PDF-Speichern laufen über den Browser-Druckdialog.
 - Puzzle-Ausgabe bleibt SVG, damit Druck und Skalierung sauber bleiben.
+- Die ursprüngliche Rastervariante heißt `Wortsuchbild` und soll erhalten
+  bleiben.
+- Die Standardvariante `Labyrinth` ist ein echtes Maze mit SVG-Linien als
+  Mauern, Eingang und Ausgang. Anders als beim `Wortsuchbild` bleiben die
+  meisten Zellen leer; nur Wortbuchstaben und wenige Ablenker werden gesetzt.
 
 ## Qualitätscheck
 
