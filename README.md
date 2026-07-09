@@ -64,9 +64,11 @@ direkt im Browser geöffnet werden.
 2. Lösungswort eingeben.
 3. Größe und Schwierigkeit wählen.
 4. Beim Labyrinth optional die Buchstabenmenge wählen.
-5. `Neu erzeugen` klicken.
-6. Optional `Lösung anzeigen`.
-7. Über `Drucken` den Browser-Druckdialog öffnen.
+5. `Puzzle anlegen` klicken. Die erste Eingabe ersetzt die Start-Demo; weitere
+   Puzzles werden zur Liste hinzugefügt.
+6. Puzzles können über das rote × an der jeweiligen Karte entfernt werden.
+7. Optional `Lösung anzeigen`.
+8. Über `Drucken` den Browser-Druckdialog öffnen.
 
 Beim gedruckten Labyrinth steht das Lösungswort nicht in der Kopfzeile. Dafür
 werden leere Kästchen zum Eintragen des gefundenen Wortes gedruckt. Der

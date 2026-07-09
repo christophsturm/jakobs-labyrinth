@@ -109,6 +109,8 @@ export type CompletePuzzleUrlSettings = {
   savedSeeds?: number[] | undefined;
 };
 
+type PuzzleUrlEntry = Omit<CompletePuzzleUrlSettings, "savedSeeds">;
+
 export type PuzzleUrlParseResult = {
   settings: PuzzleUrlSettings;
   invalidParams: PuzzleUrlInvalidParam[];
@@ -145,6 +147,7 @@ const urlParamNames = {
   mazeLetterAmount: "letters",
   seed: "seed",
   savedSeeds: "saved",
+  additionalPuzzle: "puzzle",
 } as const;
 
 type _PuzzleKindOptionsMatchInternalType = AssertType<
@@ -214,6 +217,14 @@ const completePuzzleUrlSettingsSchema = v.object({
   seed: urlSeedWriteSchema,
   savedSeeds: urlSavedSeedsWriteSchema,
 });
+const puzzleUrlEntrySchema = v.object({
+  kind: puzzleKindSchema,
+  word: urlWordSchema,
+  cols: urlColsWriteSchema,
+  difficulty: difficultySchema,
+  mazeLetterAmount: mazeLetterAmountSchema,
+  seed: urlSeedWriteSchema,
+});
 type _PuzzleKindSchemaMatchesInternalType = AssertType<
   IsExactType<v.InferOutput<typeof puzzleKindSchema>, PuzzleKind>
 >;
@@ -245,9 +256,10 @@ type LanguageLabels = {
   sizeField: string;
   difficultyField: string;
   mazeLetterAmountField: string;
-  generate: string;
-  useWord: string;
-  saveAndNext: string;
+  addPuzzle: string;
+  deletePuzzle: (index: number) => string;
+  demo: string;
+  emptyState: string;
   showSolution: string;
   hideSolution: string;
   print: string;
@@ -292,9 +304,10 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       sizeField: "Größe",
       difficultyField: "Schwierigkeit",
       mazeLetterAmountField: "Buchstabenmenge",
-      generate: "Neu erzeugen",
-      useWord: "Wort übernehmen",
-      saveAndNext: "Speichern und noch eins",
+      addPuzzle: "Puzzle anlegen",
+      deletePuzzle: (index) => `Puzzle ${index} löschen`,
+      demo: "Demo",
+      emptyState: "Noch keine Puzzles. Lege links dein erstes an.",
       showSolution: "Lösung anzeigen",
       hideSolution: "Lösung verstecken",
       print: "Drucken",
@@ -346,9 +359,10 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       sizeField: "Size",
       difficultyField: "Difficulty",
       mazeLetterAmountField: "Letter amount",
-      generate: "Generate",
-      useWord: "Use word",
-      saveAndNext: "Save and another",
+      addPuzzle: "Add puzzle",
+      deletePuzzle: (index) => `Delete puzzle ${index}`,
+      demo: "Demo",
+      emptyState: "No puzzles yet. Add your first one on the left.",
       showSolution: "Show solution",
       hideSolution: "Hide solution",
       print: "Print",
@@ -399,9 +413,10 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       sizeField: "Dimensione",
       difficultyField: "Difficoltà",
       mazeLetterAmountField: "Quantità lettere",
-      generate: "Genera",
-      useWord: "Usa parola",
-      saveAndNext: "Salva e un altro",
+      addPuzzle: "Aggiungi puzzle",
+      deletePuzzle: (index) => `Elimina il puzzle ${index}`,
+      demo: "Esempio",
+      emptyState: "Non ci sono ancora puzzle. Aggiungi il primo a sinistra.",
       showSolution: "Mostra soluzione",
       hideSolution: "Nascondi soluzione",
       print: "Stampa",
@@ -453,9 +468,10 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       sizeField: "Taille",
       difficultyField: "Difficulté",
       mazeLetterAmountField: "Quantité de lettres",
-      generate: "Générer",
-      useWord: "Utiliser le mot",
-      saveAndNext: "Enregistrer et un autre",
+      addPuzzle: "Ajouter un puzzle",
+      deletePuzzle: (index) => `Supprimer le puzzle ${index}`,
+      demo: "Démo",
+      emptyState: "Aucun puzzle pour l’instant. Ajoutez le premier à gauche.",
       showSolution: "Afficher solution",
       hideSolution: "Masquer solution",
       print: "Imprimer",
@@ -614,7 +630,81 @@ export function createPuzzleUrlSearchParams(settings: CompletePuzzleUrlSettings)
   return params;
 }
 
+export function createPuzzleCollectionUrlSearchParams(puzzles: readonly Puzzle[]): URLSearchParams {
+  const [firstPuzzle, ...additionalPuzzles] = puzzles;
+
+  if (!firstPuzzle) {
+    return new URLSearchParams();
+  }
+
+  const params = createPuzzleUrlSearchParams(puzzleUrlEntryFromPuzzle(firstPuzzle));
+
+  for (const puzzle of additionalPuzzles) {
+    params.append(
+      urlParamNames.additionalPuzzle,
+      encodeAdditionalPuzzleUrlEntry(puzzleUrlEntryFromPuzzle(puzzle)),
+    );
+  }
+
+  return params;
+}
+
+export function parseAdditionalPuzzleSettingsFromUrl(input: string | URLSearchParams): {
+  entries: PuzzleUrlEntry[];
+  invalidParams: PuzzleUrlInvalidParam[];
+} {
+  const params = typeof input === "string" ? new URLSearchParams(input) : input;
+  const entries: PuzzleUrlEntry[] = [];
+  const invalidParams: PuzzleUrlInvalidParam[] = [];
+
+  for (const value of params.getAll(urlParamNames.additionalPuzzle)) {
+    const entry = decodeAdditionalPuzzleUrlEntry(value);
+
+    if (entry) {
+      entries.push(entry);
+    } else {
+      invalidParams.push({ name: urlParamNames.additionalPuzzle, value });
+    }
+  }
+
+  return { entries, invalidParams };
+}
+
+function puzzleUrlEntryFromPuzzle(puzzle: Puzzle): PuzzleUrlEntry {
+  return {
+    kind: puzzle.kind,
+    word: puzzle.word,
+    cols: puzzle.cols,
+    difficulty: puzzle.difficulty,
+    mazeLetterAmount: puzzle.kind === "maze" ? puzzle.mazeLetterAmount : "normal",
+    seed: puzzle.seed,
+  };
+}
+
+function encodeAdditionalPuzzleUrlEntry(entry: PuzzleUrlEntry): string {
+  return encodeBase64Url(JSON.stringify(v.parse(puzzleUrlEntrySchema, entry)));
+}
+
+function decodeAdditionalPuzzleUrlEntry(value: string): PuzzleUrlEntry | null {
+  const decoded = decodeBase64Url(value);
+
+  if (decoded === null) {
+    return null;
+  }
+
+  try {
+    const result = v.safeParse(puzzleUrlEntrySchema, JSON.parse(decoded));
+    return result.success ? result.output : null;
+  } catch {
+    return null;
+  }
+}
+
 function encodeUrlWord(value: string): string {
+  return encodeBase64Url(value);
+}
+
+function encodeBase64Url(value: string): string {
   const bytes = new TextEncoder().encode(value);
   let binary = "";
 
@@ -626,6 +716,12 @@ function encodeUrlWord(value: string): string {
 }
 
 function decodeUrlWordParam(value: string): string | null {
+  const decoded = decodeBase64Url(value);
+
+  return decoded !== null && looksLikeDecodedUrlWord(decoded) ? decoded : null;
+}
+
+function decodeBase64Url(value: string): string | null {
   const candidate = value.trim();
 
   if (!/^[A-Za-z0-9_-]+={0,2}$/.test(candidate)) {
@@ -638,9 +734,7 @@ function decodeUrlWordParam(value: string): string | null {
   try {
     const binary = atob(paddedBase64);
     const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-    const decoded = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-
-    return looksLikeDecodedUrlWord(decoded) ? decoded : null;
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
   } catch {
     return null;
   }
@@ -2174,19 +2268,18 @@ function bindApp(): void {
   const mazeLetterAmountLabel = byId<HTMLSpanElement>("maze-letter-amount-label");
   const mazeLetterAmountField = byId<HTMLLabelElement>("maze-letter-amount-field");
   const mazeLetterAmountSelect = byId<HTMLSelectElement>("maze-letter-amount");
-  const generateButton = byId<HTMLButtonElement>("generate");
-  const saveNextButton = byId<HTMLButtonElement>("save-next");
+  const addPuzzleButton = byId<HTMLButtonElement>("add-puzzle");
   const toggleSolutionButton = byId<HTMLButtonElement>("toggle-solution");
   const printButton = byId<HTMLButtonElement>("print");
   const worksheets = byId<HTMLDivElement>("worksheets");
   const status = byId<HTMLParagraphElement>("status");
 
-  let currentPuzzle: Puzzle | null = null;
-  let savedPuzzles: Puzzle[] = [];
-  let wordDirty = false;
+  let puzzles: Puzzle[] = [];
+  let showingDemo = false;
   let showSolution = false;
   const initialUrlSettingsResult = parsePuzzleSettingsFromUrlWithIssues(window.location.search);
   const initialUrlSettings = initialUrlSettingsResult.settings;
+  const additionalUrlSettingsResult = parseAdditionalPuzzleSettingsFromUrl(window.location.search);
 
   languageSelect.value = languageFromLocales(
     navigator.languages.length > 0 ? navigator.languages : [navigator.language],
@@ -2204,40 +2297,27 @@ function bindApp(): void {
     return parseMazeLetterAmount(mazeLetterAmountSelect.value);
   }
 
-  function visiblePuzzles(): Puzzle[] {
-    return currentPuzzle ? [currentPuzzle, ...savedPuzzles] : [...savedPuzzles];
-  }
+  function renderPuzzles(): void {
+    if (puzzles.length === 0) {
+      worksheets.innerHTML = `<div class="empty-state">${escapeHtml(currentLabels().emptyState)}</div>`;
+    } else {
+      worksheets.innerHTML = renderInteractivePuzzlesHtml(puzzles, {
+        showSolution,
+        showDemoBadge: showingDemo,
+      });
+    }
 
-  function savedSeeds(): number[] {
-    return savedPuzzles.map((puzzle) => puzzle.seed);
-  }
-
-  function renderVisiblePuzzles(): void {
-    worksheets.innerHTML = renderPuzzlePagesHtml(visiblePuzzles(), {
-      showFirstSolution: showSolution,
-    });
+    updateActionButtons();
   }
 
   function updateActionButtons(): void {
     const labels = currentLabels();
-    const printCount = visiblePuzzles().length;
+    const printCount = puzzles.length;
 
-    generateButton.textContent = wordDirty ? labels.useWord : labels.generate;
-    generateButton.classList.toggle("needs-action", wordDirty);
-    saveNextButton.textContent = labels.saveAndNext;
+    addPuzzleButton.textContent = labels.addPuzzle;
     printButton.textContent = printCount > 1 ? labels.printCount(printCount) : labels.print;
-  }
-
-  function updateWordDirtyState(): void {
-    if (!currentPuzzle) {
-      wordDirty = false;
-      updateActionButtons();
-      return;
-    }
-
-    const word = normalizeWord(wordInput.value, currentLanguage());
-    wordDirty = word !== currentPuzzle.word;
-    updateActionButtons();
+    printButton.disabled = printCount === 0;
+    toggleSolutionButton.disabled = printCount === 0;
   }
 
   function puzzleOptionsFromControls(seed?: number): GeneratePuzzleOptions {
@@ -2261,17 +2341,14 @@ function bindApp(): void {
     return generatePuzzle(puzzleOptionsFromControls(seed));
   }
 
-  function replaceSavedPuzzlesFromSeeds(seeds: readonly number[]): void {
-    savedPuzzles = seeds.map((seed) => generatePuzzleFromControls(seed));
+  function generatePuzzleFromUrlEntry(entry: PuzzleUrlEntry): Puzzle {
+    return generatePuzzle({
+      ...entry,
+      language: currentLanguage(),
+    });
   }
 
-  function regenerate(
-    options: {
-      seed?: number;
-      updateUrl?: boolean;
-      invalidUrlParams?: readonly PuzzleUrlInvalidParam[];
-    } = {},
-  ): void {
+  function addPuzzle(): void {
     const language = currentLanguage();
     const labels = languageConfigs[language].labels;
 
@@ -2281,33 +2358,18 @@ function bindApp(): void {
 
     try {
       const wordFeedback = normalizeWordWithFeedback(wordInput.value, language);
+      const puzzle = generatePuzzleFromControls();
 
-      currentPuzzle = generatePuzzleFromControls(options.seed);
-      wordDirty = false;
-
-      const invalidUrlParams = options.invalidUrlParams ?? [];
-      const messages = [
-        ...(invalidUrlParams.length > 0
-          ? [labels.urlSettingsAdjusted(formatInvalidUrlParams(invalidUrlParams, labels))]
-          : []),
-        ...(wordFeedback.removedCharacters
-          ? [labels.unsupportedCharacters(currentPuzzle.word)]
-          : []),
-      ];
-      status.textContent = messages.join(" ");
-      renderVisiblePuzzles();
-
-      if (options.updateUrl ?? true) {
-        updatePuzzleUrl(currentPuzzle);
-      }
+      puzzles = showingDemo ? [puzzle] : [...puzzles, puzzle];
+      showingDemo = false;
+      status.textContent = wordFeedback.removedCharacters
+        ? labels.unsupportedCharacters(puzzle.word)
+        : "";
+      renderPuzzles();
+      updatePuzzleUrl();
     } catch (error) {
-      currentPuzzle = null;
-      wordDirty = true;
-      worksheets.textContent = "";
       status.textContent = error instanceof Error ? error.message : "Fehler beim Erzeugen.";
-      renderVisiblePuzzles();
     }
-    updateActionButtons();
   }
 
   function updateVariantControls(): void {
@@ -2336,18 +2398,10 @@ function bindApp(): void {
     }
   }
 
-  function updatePuzzleUrl(puzzle: Puzzle): void {
+  function updatePuzzleUrl(): void {
     const url = new URL(window.location.href);
 
-    url.search = createPuzzleUrlSearchParams({
-      kind: puzzle.kind,
-      word: puzzle.word,
-      cols: puzzle.cols,
-      difficulty: puzzle.difficulty,
-      mazeLetterAmount: currentMazeLetterAmount(),
-      seed: puzzle.seed,
-      savedSeeds: savedSeeds(),
-    }).toString();
+    url.search = createPuzzleCollectionUrlSearchParams(showingDemo ? [] : puzzles).toString();
     window.history.replaceState(null, "", url.toString());
   }
 
@@ -2364,8 +2418,7 @@ function bindApp(): void {
     sizeLabel.textContent = labels.sizeField;
     difficultyLabel.textContent = labels.difficultyField;
     mazeLetterAmountLabel.textContent = labels.mazeLetterAmountField;
-    generateButton.textContent = labels.generate;
-    saveNextButton.textContent = labels.saveAndNext;
+    addPuzzleButton.textContent = labels.addPuzzle;
     printButton.textContent = labels.print;
 
     setOptionText(kindSelect, "maze", labels.puzzleKinds.maze);
@@ -2377,111 +2430,131 @@ function bindApp(): void {
     setOptionText(mazeLetterAmountSelect, "normal", labels.mazeLetterAmounts.normal);
     setOptionText(mazeLetterAmountSelect, "many", labels.mazeLetterAmounts.many);
     toggleSolutionButton.textContent = showSolution ? labels.hideSolution : labels.showSolution;
-    renderVisiblePuzzles();
-    updateActionButtons();
   }
 
-  function ensureCurrentPuzzle(): boolean {
-    if (wordDirty) {
-      savedPuzzles = [];
-    }
-
-    if (wordDirty || !currentPuzzle) {
-      regenerate();
-    }
-
-    return Boolean(currentPuzzle);
-  }
-
-  function saveCurrentAndGenerateNext(): void {
-    if (!ensureCurrentPuzzle() || !currentPuzzle) {
-      return;
-    }
-
-    savedPuzzles = [currentPuzzle, ...savedPuzzles];
-    regenerate();
-  }
-
-  function regenerateAfterSettingsChange(): void {
-    savedPuzzles = [];
-    regenerate();
+  function regeneratePuzzlesForLanguage(): void {
+    puzzles = puzzles.map((puzzle) =>
+      generatePuzzle({
+        kind: puzzle.kind,
+        language: currentLanguage(),
+        word: puzzle.word,
+        cols: puzzle.cols,
+        rows: puzzle.rows,
+        difficulty: puzzle.difficulty,
+        mazeLetterAmount: puzzle.kind === "maze" ? puzzle.mazeLetterAmount : "normal",
+        seed: puzzle.seed,
+      }),
+    );
   }
 
   languageSelect.addEventListener("change", () => {
-    const seed = currentPuzzle?.seed;
-    const previousSavedSeeds = savedSeeds();
+    try {
+      regeneratePuzzlesForLanguage();
+      status.textContent = "";
+      updateLanguageText();
+      renderPuzzles();
 
-    updateLanguageText();
-    if (seed === undefined) {
-      regenerate();
-    } else {
-      regenerate({ seed });
-    }
-
-    if (currentPuzzle) {
-      replaceSavedPuzzlesFromSeeds(previousSavedSeeds);
-      renderVisiblePuzzles();
-      updateActionButtons();
-      updatePuzzleUrl(currentPuzzle);
+      if (!showingDemo) {
+        updatePuzzleUrl();
+      }
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : "Fehler beim Erzeugen.";
     }
   });
-  kindSelect.addEventListener("change", regenerateAfterSettingsChange);
-  sizeSelect.addEventListener("change", regenerateAfterSettingsChange);
-  difficultySelect.addEventListener("change", regenerateAfterSettingsChange);
-  mazeLetterAmountSelect.addEventListener("change", regenerateAfterSettingsChange);
-  generateButton.addEventListener("click", () => {
-    if (wordDirty) {
-      savedPuzzles = [];
-    }
-
-    regenerate();
+  kindSelect.addEventListener("change", updateVariantControls);
+  addPuzzleButton.addEventListener("click", addPuzzle);
+  wordInput.addEventListener("input", () => {
+    status.textContent = "";
   });
-  saveNextButton.addEventListener("click", saveCurrentAndGenerateNext);
-  wordInput.addEventListener("input", updateWordDirtyState);
   wordInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
-      if (wordDirty) {
-        savedPuzzles = [];
-      }
-
-      regenerate();
+      addPuzzle();
     }
   });
   toggleSolutionButton.addEventListener("click", () => {
-    if (!currentPuzzle) {
+    if (puzzles.length === 0) {
       return;
     }
 
     showSolution = !showSolution;
     const labels = currentLabels();
     toggleSolutionButton.textContent = showSolution ? labels.hideSolution : labels.showSolution;
-    renderVisiblePuzzles();
+    renderPuzzles();
   });
   printButton.addEventListener("click", () => {
-    if (ensureCurrentPuzzle()) {
-      renderVisiblePuzzles();
-      window.print();
+    if (puzzles.length === 0) {
+      return;
     }
+
+    renderPuzzles();
+    window.print();
+  });
+  worksheets.addEventListener("click", (event) => {
+    if (!(event.target instanceof Element)) {
+      return;
+    }
+
+    const button = event.target.closest<HTMLButtonElement>("button[data-puzzle-index]");
+
+    if (!button || !worksheets.contains(button)) {
+      return;
+    }
+
+    const index = Number(button.dataset.puzzleIndex);
+
+    if (!Number.isInteger(index) || index < 0 || index >= puzzles.length) {
+      return;
+    }
+
+    puzzles = puzzles.filter((_, puzzleIndex) => puzzleIndex !== index);
+    showingDemo = false;
+    showSolution = false;
+    toggleSolutionButton.textContent = currentLabels().showSolution;
+    status.textContent = "";
+    renderPuzzles();
+    updatePuzzleUrl();
   });
 
   updateLanguageText();
   applyUrlSettings(initialUrlSettings);
   updateVariantControls();
-  if (initialUrlSettings.seed === undefined) {
-    regenerate({ invalidUrlParams: initialUrlSettingsResult.invalidParams });
-  } else {
-    regenerate({
-      seed: initialUrlSettings.seed,
-      invalidUrlParams: initialUrlSettingsResult.invalidParams,
-    });
+  const invalidUrlParams = [
+    ...initialUrlSettingsResult.invalidParams,
+    ...additionalUrlSettingsResult.invalidParams,
+  ];
+
+  try {
+    if (initialUrlSettings.seed === undefined) {
+      puzzles = [generatePuzzleFromControls()];
+      showingDemo = true;
+    } else {
+      puzzles = [generatePuzzleFromControls(initialUrlSettings.seed)];
+      showingDemo = false;
+
+      for (const seed of initialUrlSettings.savedSeeds ?? []) {
+        puzzles.push(generatePuzzleFromControls(seed));
+      }
+
+      for (const entry of additionalUrlSettingsResult.entries) {
+        puzzles.push(generatePuzzleFromUrlEntry(entry));
+      }
+
+      updatePuzzleUrl();
+    }
+
+    status.textContent =
+      invalidUrlParams.length > 0
+        ? currentLabels().urlSettingsAdjusted(
+            formatInvalidUrlParams(invalidUrlParams, currentLabels()),
+          )
+        : "";
+  } catch (error) {
+    puzzles = [];
+    showingDemo = false;
+    status.textContent = error instanceof Error ? error.message : "Fehler beim Erzeugen.";
   }
 
-  if (currentPuzzle && initialUrlSettings.savedSeeds) {
-    replaceSavedPuzzlesFromSeeds(initialUrlSettings.savedSeeds);
-    renderVisiblePuzzles();
-    updateActionButtons();
-    updatePuzzleUrl(currentPuzzle);
-  }
+  renderPuzzles();
 }
 
 function setOptionText(select: HTMLSelectElement, value: string, label: string): void {
@@ -2510,6 +2583,7 @@ function formatInvalidUrlParams(
     [urlParamNames.mazeLetterAmount]: labels.mazeLetterAmountField,
     [urlParamNames.seed]: "Seed",
     [urlParamNames.savedSeeds]: "Gespeicherte Seeds",
+    [urlParamNames.additionalPuzzle]: "Puzzle",
   };
 
   return invalidParams
@@ -2580,25 +2654,39 @@ function renderWorksheetMeta(puzzle: Puzzle, title: string): string {
 
 function renderPuzzlePagesHtml(
   puzzles: readonly Puzzle[],
-  options: { showFirstSolution: boolean },
+  options: {
+    showSolution: boolean;
+    showDeleteButtons?: boolean;
+    showDemoBadge?: boolean;
+  },
 ): string {
   return puzzles
     .map((puzzle, index) => {
       const labels = languageConfigs[puzzle.language].labels;
       const title = labels.puzzleKinds[puzzle.kind];
-      const showSolution = index === 0 && options.showFirstSolution;
+      const demoBadge =
+        index === 0 && options.showDemoBadge
+          ? `<span class="demo-badge">${escapeHtml(labels.demo)}</span>`
+          : "";
+      const deleteButton = options.showDeleteButtons
+        ? `<button class="delete-puzzle" type="button" data-puzzle-index="${index}" aria-label="${escapeHtml(labels.deletePuzzle(index + 1))}" title="${escapeHtml(labels.deletePuzzle(index + 1))}"><span aria-hidden="true">×</span></button>`
+        : "";
 
       return `
         <section class="print-page">
           <header class="sheet-header">
-            <h1 class="print-title">${escapeHtml(title)}</h1>
+            <div class="sheet-heading">
+              ${demoBadge}
+              <h1 class="print-title">${escapeHtml(title)}</h1>
+            </div>
             <div class="worksheet-meta">${escapeHtml(renderWorksheetMeta(puzzle, title))}</div>
+            ${deleteButton}
           </header>
           <div class="print-fields" aria-hidden="true">
             <span>${escapeHtml(labels.name)}</span>
             <span>${escapeHtml(labels.date)}</span>
           </div>
-          <div class="print-worksheet">${renderSvg(puzzle, { showSolution })}</div>
+          <div class="print-worksheet">${renderSvg(puzzle, { showSolution: options.showSolution })}</div>
           <div class="answer-boxes" aria-hidden="true">${renderAnswerBoxesHtml(puzzle)}</div>
         </section>
       `;
@@ -2607,7 +2695,18 @@ function renderPuzzlePagesHtml(
 }
 
 export function renderPrintablePuzzlesHtml(puzzles: readonly Puzzle[]): string {
-  return renderPuzzlePagesHtml(puzzles, { showFirstSolution: false });
+  return renderPuzzlePagesHtml(puzzles, { showSolution: false });
+}
+
+export function renderInteractivePuzzlesHtml(
+  puzzles: readonly Puzzle[],
+  options: { showSolution: boolean; showDemoBadge: boolean },
+): string {
+  return renderPuzzlePagesHtml(puzzles, {
+    showSolution: options.showSolution,
+    showDeleteButtons: true,
+    showDemoBadge: options.showDemoBadge,
+  });
 }
 
 export function renderAnswerBoxesHtml(puzzle: Puzzle): string {

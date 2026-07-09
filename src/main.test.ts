@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import {
+  createPuzzleCollectionUrlSearchParams,
   createPuzzleUrlSearchParams,
   generateMazePuzzle,
   generatePuzzle,
@@ -13,7 +14,9 @@ import {
   pointKey,
   parsePuzzleSettingsFromUrl,
   parsePuzzleSettingsFromUrlWithIssues,
+  parseAdditionalPuzzleSettingsFromUrl,
   renderAnswerBoxesHtml,
+  renderInteractivePuzzlesHtml,
   renderPrintablePuzzlesHtml,
   renderSvg,
   type MazePuzzle,
@@ -200,6 +203,55 @@ describe("puzzle URL settings", () => {
     expect(() => createPuzzleUrlSearchParams({ ...base, cols: 6 })).toThrow();
     expect(() => createPuzzleUrlSearchParams({ ...base, seed: 0 })).toThrow();
     expect(() => createPuzzleUrlSearchParams({ ...base, savedSeeds: [1, 0] })).toThrow();
+  });
+
+  test("round-trips additional puzzles with their own settings", () => {
+    const first = generateMazePuzzle({
+      kind: "maze",
+      word: "DRACHE",
+      cols: 10,
+      difficulty: "medium",
+      mazeLetterAmount: "many",
+      seed: 4321,
+    });
+    const second = generateWordSearchPuzzle({
+      kind: "wordSearch",
+      word: "KOMET",
+      cols: 8,
+      difficulty: "hard",
+      seed: 98765,
+    });
+    const params = createPuzzleCollectionUrlSearchParams([first, second]);
+
+    expect(params.getAll("puzzle")).toHaveLength(1);
+    expect(parsePuzzleSettingsFromUrl(params)).toMatchObject({
+      kind: "maze",
+      word: "DRACHE",
+      cols: 10,
+      difficulty: "medium",
+      mazeLetterAmount: "many",
+      seed: 4321,
+    });
+    expect(parseAdditionalPuzzleSettingsFromUrl(params)).toEqual({
+      entries: [
+        {
+          kind: "wordSearch",
+          word: "KOMET",
+          cols: 8,
+          difficulty: "hard",
+          mazeLetterAmount: "normal",
+          seed: 98765,
+        },
+      ],
+      invalidParams: [],
+    });
+  });
+
+  test("rejects malformed additional puzzle settings", () => {
+    expect(parseAdditionalPuzzleSettingsFromUrl("?puzzle=not-valid-json")).toEqual({
+      entries: [],
+      invalidParams: [{ name: "puzzle", value: "not-valid-json" }],
+    });
   });
 });
 
@@ -564,6 +616,35 @@ describe("renderPrintablePuzzlesHtml", () => {
   });
 });
 
+describe("renderInteractivePuzzlesHtml", () => {
+  test("adds a localized delete control to every puzzle and marks the demo", () => {
+    const first = generateMazePuzzle({
+      kind: "maze",
+      word: "DRACHE",
+      cols: 10,
+      difficulty: "medium",
+      seed: 4321,
+    });
+    const second = generateWordSearchPuzzle({
+      kind: "wordSearch",
+      word: "KOMET",
+      cols: 8,
+      difficulty: "hard",
+      seed: 98765,
+    });
+    const html = renderInteractivePuzzlesHtml([first, second], {
+      showSolution: false,
+      showDemoBadge: true,
+    });
+
+    expect(html.match(/class="delete-puzzle"/g)).toHaveLength(2);
+    expect(html).toContain('data-puzzle-index="0"');
+    expect(html).toContain('aria-label="Puzzle 1 löschen"');
+    expect(html.match(/class="demo-badge"/g)).toHaveLength(1);
+    expect(renderPrintablePuzzlesHtml([first, second])).not.toContain("delete-puzzle");
+  });
+});
+
 describe("project configuration", () => {
   test("formatter scripts scan the project instead of enumerating today's files", () => {
     const packageJson = JSON.parse(readFileSync(packageJsonFile, "utf8")) as {
@@ -606,6 +687,14 @@ describe("project configuration", () => {
     expect(printCss).toMatch(/\.controls\s*\{[\s\S]*display:\s*none/);
     expect(cssRuleBody(printCss, ".app")).toContain("display: block");
     expect(cssRuleBody(printCss, ".app")).not.toContain("display: none");
+  });
+
+  test("uses one primary puzzle action instead of separate generate and save buttons", () => {
+    const html = readFileSync(sourceIndexHtmlFile, "utf8");
+
+    expect(html).toContain('button id="add-puzzle"');
+    expect(html).not.toContain('button id="generate"');
+    expect(html).not.toContain('button id="save-next"');
   });
 });
 
