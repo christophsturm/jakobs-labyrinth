@@ -1,19 +1,20 @@
-# Jakobs Labyrinth Drucker
+# Jakob's Maze Printer
 
-Ein kleines Browser-Tool zum Erzeugen und Drucken von Buchstabenrätseln. Die
-Entwicklung läuft mit Vite und TypeScript; der Produktionsbuild erzeugt eine
-einzige, self-contained HTML-Datei.
+A small browser tool for creating and printing letter puzzles. Development uses
+Vite and TypeScript; the production build produces a single, self-contained HTML
+file.
 
-Die Quellen liegen unter `src/`. `src/index.html` ist der Vite-Einstiegspunkt
-und wird nicht direkt im Browser geöffnet; lokal läuft die App über `pnpm dev`.
+The source files live in `src/`. `src/index.html` is the Vite entry point and is
+not opened directly in the browser; the app runs through `pnpm dev` during local
+development.
 
-Es gibt zwei Varianten:
+The app provides two puzzle types:
 
-- `Labyrinth`: ein echtes Labyrinth mit Mauern, Eingang und Ausgang. Nur an
-  manchen Stellen liegen Buchstaben; der richtige Weg führt in Reihenfolge am
-  Lösungswort vorbei. Die Buchstabenmenge ist separat einstellbar.
-- `Wortsuchbild`: die ursprüngliche Version mit Buchstabenraster und
-  markierbarem Lösungspfad.
+- `Maze`: a real maze with walls, an entrance, and an exit. Letters appear only
+  in selected cells, and the correct path passes the solution word in order. The
+  amount of additional letters can be configured separately.
+- `Word search`: the original version with a letter grid and a solution path
+  that can be highlighted.
 
 ## Setup
 
@@ -21,13 +22,13 @@ Es gibt zwei Varianten:
 pnpm install
 ```
 
-## Entwicklung
+## Development
 
 ```sh
 pnpm dev
 ```
 
-Die App läuft dann lokal unter `http://127.0.0.1:5173/`.
+The app is then available at `http://127.0.0.1:5173/`.
 
 ## Checks
 
@@ -35,7 +36,7 @@ Die App läuft dann lokal unter `http://127.0.0.1:5173/`.
 pnpm check
 ```
 
-Der Check umfasst:
+This command runs:
 
 - `oxfmt --check`
 - `oxlint`
@@ -49,27 +50,28 @@ Der Check umfasst:
 pnpm build
 ```
 
-Die auslieferbare Datei ist:
+The distributable file is:
 
 ```txt
 dist/index.html
 ```
 
-Diese Datei kann bei Bedarf zu `jakobs-labyrinth-drucker.html` umbenannt und
-direkt im Browser geöffnet werden.
+It can be renamed to `jakobs-labyrinth-drucker.html` and opened directly in a
+browser when needed.
 
-## Bedienung
+## Usage
 
-1. Variante wählen.
-2. Lösungswort eingeben.
-3. Größe und Schwierigkeit wählen.
-4. Beim Labyrinth optional die Buchstabenmenge wählen.
-5. `Puzzle anlegen` klicken. Die erste Eingabe ersetzt die Start-Demo; weitere
-   Puzzles werden zur Liste hinzugefügt.
-6. Puzzles können über das rote × an der jeweiligen Karte entfernt werden.
-7. Optional `Lösung anzeigen`.
-8. Über `Drucken` den Browser-Druckdialog öffnen.
+1. Select a puzzle type.
+2. Enter the solution word.
+3. Choose the size and difficulty.
+4. For mazes, optionally select the amount of additional letters.
+5. Select `Add puzzle`. The first puzzle replaces the initial demo; subsequent
+   puzzles are appended to the list.
+6. Remove individual puzzles using the red × on their card.
+7. Optionally select `Show solution`.
+8. Select `Print` to open the browser's print dialog.
 
-Beim gedruckten Labyrinth steht das Lösungswort nicht in der Kopfzeile. Dafür
-werden leere Kästchen zum Eintragen des gefundenen Wortes gedruckt. Der
-Druckdialog kann auch zum Speichern als PDF verwendet werden.
+The solution word is omitted from a printed maze's heading. Empty boxes are
+printed instead so the found word can be filled in. The printout also includes
+the app's base URL. The browser's print dialog can be used to save the puzzles as
+a PDF.

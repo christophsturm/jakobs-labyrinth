@@ -260,6 +260,8 @@ type LanguageLabels = {
   deletePuzzle: (index: number) => string;
   demo: string;
   emptyState: string;
+  githubLink: string;
+  printSource: string;
   showSolution: string;
   hideSolution: string;
   print: string;
@@ -308,6 +310,8 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       deletePuzzle: (index) => `Puzzle ${index} löschen`,
       demo: "Demo",
       emptyState: "Noch keine Puzzles. Lege links dein erstes an.",
+      githubLink: "Auf GitHub ansehen",
+      printSource: "Erstellt mit",
       showSolution: "Lösung anzeigen",
       hideSolution: "Lösung verstecken",
       print: "Drucken",
@@ -363,6 +367,8 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       deletePuzzle: (index) => `Delete puzzle ${index}`,
       demo: "Demo",
       emptyState: "No puzzles yet. Add your first one on the left.",
+      githubLink: "View on GitHub",
+      printSource: "Created with",
       showSolution: "Show solution",
       hideSolution: "Hide solution",
       print: "Print",
@@ -417,6 +423,8 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       deletePuzzle: (index) => `Elimina il puzzle ${index}`,
       demo: "Esempio",
       emptyState: "Non ci sono ancora puzzle. Aggiungi il primo a sinistra.",
+      githubLink: "Vedi su GitHub",
+      printSource: "Creato con",
       showSolution: "Mostra soluzione",
       hideSolution: "Nascondi soluzione",
       print: "Stampa",
@@ -472,6 +480,8 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       deletePuzzle: (index) => `Supprimer le puzzle ${index}`,
       demo: "Démo",
       emptyState: "Aucun puzzle pour l’instant. Ajoutez le premier à gauche.",
+      githubLink: "Voir sur GitHub",
+      printSource: "Créé avec",
       showSolution: "Afficher solution",
       hideSolution: "Masquer solution",
       print: "Imprimer",
@@ -628,6 +638,15 @@ export function createPuzzleUrlSearchParams(settings: CompletePuzzleUrlSettings)
   }
 
   return params;
+}
+
+export function baseUrlFromLocation(input: string): string {
+  const url = new URL(input);
+
+  url.search = "";
+  url.hash = "";
+
+  return url.toString();
 }
 
 export function createPuzzleCollectionUrlSearchParams(puzzles: readonly Puzzle[]): URLSearchParams {
@@ -2273,6 +2292,7 @@ function bindApp(): void {
   const printButton = byId<HTMLButtonElement>("print");
   const worksheets = byId<HTMLDivElement>("worksheets");
   const status = byId<HTMLParagraphElement>("status");
+  const githubLinkLabel = byId<HTMLSpanElement>("github-link-label");
 
   let puzzles: Puzzle[] = [];
   let showingDemo = false;
@@ -2304,6 +2324,7 @@ function bindApp(): void {
       worksheets.innerHTML = renderInteractivePuzzlesHtml(puzzles, {
         showSolution,
         showDemoBadge: showingDemo,
+        printSourceUrl: baseUrlFromLocation(window.location.href),
       });
     }
 
@@ -2418,6 +2439,7 @@ function bindApp(): void {
     sizeLabel.textContent = labels.sizeField;
     difficultyLabel.textContent = labels.difficultyField;
     mazeLetterAmountLabel.textContent = labels.mazeLetterAmountField;
+    githubLinkLabel.textContent = labels.githubLink;
     addPuzzleButton.textContent = labels.addPuzzle;
     printButton.textContent = labels.print;
 
@@ -2658,6 +2680,7 @@ function renderPuzzlePagesHtml(
     showSolution: boolean;
     showDeleteButtons?: boolean;
     showDemoBadge?: boolean;
+    printSourceUrl?: string;
   },
 ): string {
   return puzzles
@@ -2670,6 +2693,9 @@ function renderPuzzlePagesHtml(
           : "";
       const deleteButton = options.showDeleteButtons
         ? `<button class="delete-puzzle" type="button" data-puzzle-index="${index}" aria-label="${escapeHtml(labels.deletePuzzle(index + 1))}" title="${escapeHtml(labels.deletePuzzle(index + 1))}"><span aria-hidden="true">×</span></button>`
+        : "";
+      const printSource = options.printSourceUrl
+        ? `<div class="print-source">${escapeHtml(labels.printSource)} ${escapeHtml(options.printSourceUrl)}</div>`
         : "";
 
       return `
@@ -2688,24 +2714,32 @@ function renderPuzzlePagesHtml(
           </div>
           <div class="print-worksheet">${renderSvg(puzzle, { showSolution: options.showSolution })}</div>
           <div class="answer-boxes" aria-hidden="true">${renderAnswerBoxesHtml(puzzle)}</div>
+          ${printSource}
         </section>
       `;
     })
     .join("");
 }
 
-export function renderPrintablePuzzlesHtml(puzzles: readonly Puzzle[]): string {
-  return renderPuzzlePagesHtml(puzzles, { showSolution: false });
+export function renderPrintablePuzzlesHtml(
+  puzzles: readonly Puzzle[],
+  printSourceUrl?: string,
+): string {
+  return renderPuzzlePagesHtml(
+    puzzles,
+    printSourceUrl ? { showSolution: false, printSourceUrl } : { showSolution: false },
+  );
 }
 
 export function renderInteractivePuzzlesHtml(
   puzzles: readonly Puzzle[],
-  options: { showSolution: boolean; showDemoBadge: boolean },
+  options: { showSolution: boolean; showDemoBadge: boolean; printSourceUrl: string },
 ): string {
   return renderPuzzlePagesHtml(puzzles, {
     showSolution: options.showSolution,
     showDeleteButtons: true,
     showDemoBadge: options.showDemoBadge,
+    printSourceUrl: options.printSourceUrl,
   });
 }
 

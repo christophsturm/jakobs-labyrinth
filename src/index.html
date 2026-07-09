@@ -157,6 +157,38 @@
         line-height: 1.35;
       }
 
+      .github-link {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 2px;
+        padding: 10px 2px 0;
+        color: #d9e0d7;
+        border-top: 1px solid #3b463f;
+        font-size: 0.8rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-decoration: none;
+        text-transform: uppercase;
+      }
+
+      .github-link:hover {
+        color: #f9d64a;
+      }
+
+      .github-link:focus-visible {
+        color: #f9d64a;
+        outline: 2px solid #f9d64a;
+        outline-offset: 4px;
+      }
+
+      .github-link-arrow {
+        color: #f9d64a;
+        font-size: 1.05rem;
+        line-height: 1;
+      }
+
       .worksheets {
         display: grid;
         align-content: start;
@@ -267,6 +299,10 @@
       }
 
       .answer-boxes {
+        display: none;
+      }
+
+      .print-source {
         display: none;
       }
 
@@ -389,6 +425,16 @@
           page-break-inside: avoid;
         }
 
+        .print-source {
+          display: block;
+          margin-top: 5mm;
+          color: #444;
+          font-size: 8.5pt;
+          line-height: 1.25;
+          overflow-wrap: anywhere;
+          text-align: center;
+        }
+
         .answer-boxes-label {
           font-size: 11pt;
           font-weight: 700;
@@ -484,6 +530,16 @@
         </div>
 
         <p id="status" class="status" role="status" aria-live="polite"></p>
+
+        <a
+          class="github-link"
+          href="https://github.com/christophsturm/jakobs-labyrinth"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span id="github-link-label">Auf GitHub ansehen</span>
+          <span class="github-link-arrow" aria-hidden="true">↗</span>
+        </a>
       </aside>
 
       <main id="worksheets" class="worksheets" aria-live="polite"></main>

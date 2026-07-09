@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import {
+  baseUrlFromLocation,
   createPuzzleCollectionUrlSearchParams,
   createPuzzleUrlSearchParams,
   generateMazePuzzle,
@@ -76,6 +77,12 @@ describe("languageFromLocales", () => {
 });
 
 describe("puzzle URL settings", () => {
+  test("removes puzzle state from the printed base URL", () => {
+    expect(
+      baseUrlFromLocation("https://example.com/jakobs-labyrinth/?kind=maze&word=DRACHE#solution"),
+    ).toBe("https://example.com/jakobs-labyrinth/");
+  });
+
   test("serializes all shareable settings except language", () => {
     const params = createPuzzleUrlSearchParams({
       kind: "maze",
@@ -608,11 +615,16 @@ describe("renderPrintablePuzzlesHtml", () => {
       seed: 14,
     });
 
-    const html = renderPrintablePuzzlesHtml([first, second]);
+    const html = renderPrintablePuzzlesHtml(
+      [first, second],
+      "https://example.com/jakobs-labyrinth/",
+    );
 
     expect(html.match(/class="print-page"/g)).toHaveLength(2);
     expect(html).not.toContain("<polyline");
     expect(html.match(/class="answer-box"/g)).toHaveLength(first.word.length + second.word.length);
+    expect(html.match(/class="print-source"/g)).toHaveLength(2);
+    expect(html).toContain("Erstellt mit https://example.com/jakobs-labyrinth/");
   });
 });
 
@@ -635,6 +647,7 @@ describe("renderInteractivePuzzlesHtml", () => {
     const html = renderInteractivePuzzlesHtml([first, second], {
       showSolution: false,
       showDemoBadge: true,
+      printSourceUrl: "https://example.com/jakobs-labyrinth/",
     });
 
     expect(html.match(/class="delete-puzzle"/g)).toHaveLength(2);
@@ -695,6 +708,15 @@ describe("project configuration", () => {
     expect(html).toContain('button id="add-puzzle"');
     expect(html).not.toContain('button id="generate"');
     expect(html).not.toContain('button id="save-next"');
+  });
+
+  test("links to the GitHub repository and shows the base URL only when printing", () => {
+    const html = readFileSync(sourceIndexHtmlFile, "utf8");
+    const printCss = html.slice(html.indexOf("@media print"));
+
+    expect(html).toContain('href="https://github.com/christophsturm/jakobs-labyrinth"');
+    expect(html).toMatch(/\.print-source\s*\{[\s\S]*display:\s*none/);
+    expect(printCss).toMatch(/\.print-source\s*\{[\s\S]*display:\s*block/);
   });
 });
 
