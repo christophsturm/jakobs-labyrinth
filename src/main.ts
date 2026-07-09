@@ -2178,13 +2178,7 @@ function bindApp(): void {
   const saveNextButton = byId<HTMLButtonElement>("save-next");
   const toggleSolutionButton = byId<HTMLButtonElement>("toggle-solution");
   const printButton = byId<HTMLButtonElement>("print");
-  const worksheet = byId<HTMLDivElement>("worksheet");
-  const worksheetMeta = byId<HTMLDivElement>("worksheet-meta");
-  const printTitle = byId<HTMLHeadingElement>("print-title");
-  const printName = byId<HTMLSpanElement>("print-name");
-  const printDate = byId<HTMLSpanElement>("print-date");
-  const answerBoxes = byId<HTMLDivElement>("answer-boxes");
-  const printStack = byId<HTMLDivElement>("print-stack");
+  const worksheets = byId<HTMLDivElement>("worksheets");
   const status = byId<HTMLParagraphElement>("status");
 
   let currentPuzzle: Puzzle | null = null;
@@ -2210,34 +2204,23 @@ function bindApp(): void {
     return parseMazeLetterAmount(mazeLetterAmountSelect.value);
   }
 
-  function renderCurrentPuzzle(): void {
-    if (!currentPuzzle) {
-      return;
-    }
-
-    const title = languageConfigs[currentPuzzle.language].labels.puzzleKinds[currentPuzzle.kind];
-
-    worksheet.innerHTML = renderSvg(currentPuzzle, { showSolution });
-    printTitle.textContent = title;
-    worksheetMeta.textContent = renderWorksheetMeta(currentPuzzle, title);
-    renderAnswerBoxes(currentPuzzle, answerBoxes);
-  }
-
-  function printablePuzzles(): Puzzle[] {
-    return currentPuzzle ? [...savedPuzzles, currentPuzzle] : [...savedPuzzles];
+  function visiblePuzzles(): Puzzle[] {
+    return currentPuzzle ? [currentPuzzle, ...savedPuzzles] : [...savedPuzzles];
   }
 
   function savedSeeds(): number[] {
     return savedPuzzles.map((puzzle) => puzzle.seed);
   }
 
-  function updatePrintStack(): void {
-    printStack.innerHTML = renderPrintablePuzzlesHtml(printablePuzzles());
+  function renderVisiblePuzzles(): void {
+    worksheets.innerHTML = renderPuzzlePagesHtml(visiblePuzzles(), {
+      showFirstSolution: showSolution,
+    });
   }
 
   function updateActionButtons(): void {
     const labels = currentLabels();
-    const printCount = printablePuzzles().length;
+    const printCount = visiblePuzzles().length;
 
     generateButton.textContent = wordDirty ? labels.useWord : labels.generate;
     generateButton.classList.toggle("needs-action", wordDirty);
@@ -2312,8 +2295,7 @@ function bindApp(): void {
           : []),
       ];
       status.textContent = messages.join(" ");
-      renderCurrentPuzzle();
-      updatePrintStack();
+      renderVisiblePuzzles();
 
       if (options.updateUrl ?? true) {
         updatePuzzleUrl(currentPuzzle);
@@ -2321,13 +2303,9 @@ function bindApp(): void {
     } catch (error) {
       currentPuzzle = null;
       wordDirty = true;
-      worksheet.textContent = "";
-      worksheetMeta.textContent = "";
-      answerBoxes.hidden = true;
-      answerBoxes.textContent = "";
-      printTitle.textContent = labels.appTitle;
+      worksheets.textContent = "";
       status.textContent = error instanceof Error ? error.message : "Fehler beim Erzeugen.";
-      updatePrintStack();
+      renderVisiblePuzzles();
     }
     updateActionButtons();
   }
@@ -2389,8 +2367,6 @@ function bindApp(): void {
     generateButton.textContent = labels.generate;
     saveNextButton.textContent = labels.saveAndNext;
     printButton.textContent = labels.print;
-    printName.textContent = labels.name;
-    printDate.textContent = labels.date;
 
     setOptionText(kindSelect, "maze", labels.puzzleKinds.maze);
     setOptionText(kindSelect, "wordSearch", labels.puzzleKinds.wordSearch);
@@ -2401,7 +2377,7 @@ function bindApp(): void {
     setOptionText(mazeLetterAmountSelect, "normal", labels.mazeLetterAmounts.normal);
     setOptionText(mazeLetterAmountSelect, "many", labels.mazeLetterAmounts.many);
     toggleSolutionButton.textContent = showSolution ? labels.hideSolution : labels.showSolution;
-    updatePrintStack();
+    renderVisiblePuzzles();
     updateActionButtons();
   }
 
@@ -2422,7 +2398,7 @@ function bindApp(): void {
       return;
     }
 
-    savedPuzzles = [...savedPuzzles, currentPuzzle];
+    savedPuzzles = [currentPuzzle, ...savedPuzzles];
     regenerate();
   }
 
@@ -2444,7 +2420,7 @@ function bindApp(): void {
 
     if (currentPuzzle) {
       replaceSavedPuzzlesFromSeeds(previousSavedSeeds);
-      updatePrintStack();
+      renderVisiblePuzzles();
       updateActionButtons();
       updatePuzzleUrl(currentPuzzle);
     }
@@ -2479,11 +2455,11 @@ function bindApp(): void {
     showSolution = !showSolution;
     const labels = currentLabels();
     toggleSolutionButton.textContent = showSolution ? labels.hideSolution : labels.showSolution;
-    renderCurrentPuzzle();
+    renderVisiblePuzzles();
   });
   printButton.addEventListener("click", () => {
     if (ensureCurrentPuzzle()) {
-      updatePrintStack();
+      renderVisiblePuzzles();
       window.print();
     }
   });
@@ -2502,7 +2478,7 @@ function bindApp(): void {
 
   if (currentPuzzle && initialUrlSettings.savedSeeds) {
     replaceSavedPuzzlesFromSeeds(initialUrlSettings.savedSeeds);
-    updatePrintStack();
+    renderVisiblePuzzles();
     updateActionButtons();
     updatePuzzleUrl(currentPuzzle);
   }
@@ -2602,11 +2578,15 @@ function renderWorksheetMeta(puzzle: Puzzle, title: string): string {
   return `${base} · ${labels.wordMeta}: ${puzzle.word}`;
 }
 
-export function renderPrintablePuzzlesHtml(puzzles: readonly Puzzle[]): string {
+function renderPuzzlePagesHtml(
+  puzzles: readonly Puzzle[],
+  options: { showFirstSolution: boolean },
+): string {
   return puzzles
-    .map((puzzle) => {
+    .map((puzzle, index) => {
       const labels = languageConfigs[puzzle.language].labels;
       const title = labels.puzzleKinds[puzzle.kind];
+      const showSolution = index === 0 && options.showFirstSolution;
 
       return `
         <section class="print-page">
@@ -2618,7 +2598,7 @@ export function renderPrintablePuzzlesHtml(puzzles: readonly Puzzle[]): string {
             <span>${escapeHtml(labels.name)}</span>
             <span>${escapeHtml(labels.date)}</span>
           </div>
-          <div class="print-worksheet">${renderSvg(puzzle, { showSolution: false })}</div>
+          <div class="print-worksheet">${renderSvg(puzzle, { showSolution })}</div>
           <div class="answer-boxes" aria-hidden="true">${renderAnswerBoxesHtml(puzzle)}</div>
         </section>
       `;
@@ -2626,17 +2606,8 @@ export function renderPrintablePuzzlesHtml(puzzles: readonly Puzzle[]): string {
     .join("");
 }
 
-function renderAnswerBoxes(puzzle: Puzzle, container: HTMLDivElement): void {
-  const html = renderAnswerBoxesHtml(puzzle);
-
-  if (!html) {
-    container.hidden = true;
-    container.textContent = "";
-    return;
-  }
-
-  container.hidden = false;
-  container.innerHTML = html;
+export function renderPrintablePuzzlesHtml(puzzles: readonly Puzzle[]): string {
+  return renderPuzzlePagesHtml(puzzles, { showFirstSolution: false });
 }
 
 export function renderAnswerBoxesHtml(puzzle: Puzzle): string {

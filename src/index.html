@@ -154,7 +154,14 @@
         line-height: 1.35;
       }
 
-      .worksheet {
+      .worksheets {
+        display: grid;
+        align-content: start;
+        gap: 20px;
+        min-width: 0;
+      }
+
+      .print-page {
         min-width: 0;
         padding: clamp(16px, 3vw, 32px);
         background: #fffdf8;
@@ -195,16 +202,12 @@
         display: none;
       }
 
-      .print-stack {
-        display: none;
-      }
-
-      #worksheet {
+      .print-worksheet {
         width: 100%;
         overflow: auto;
       }
 
-      #worksheet svg {
+      .print-worksheet svg {
         display: block;
         width: min(100%, 720px);
         height: auto;
@@ -237,10 +240,16 @@
         }
 
         .app {
+          display: block;
+          min-height: 0;
+          padding: 0;
+        }
+
+        .controls {
           display: none;
         }
 
-        .print-stack {
+        .worksheets {
           display: block;
         }
 
@@ -396,20 +405,8 @@
         <p id="status" class="status" role="status" aria-live="polite"></p>
       </aside>
 
-      <main class="worksheet">
-        <header class="sheet-header">
-          <h1 id="print-title" class="print-title">Labyrinth</h1>
-          <div id="worksheet-meta" class="worksheet-meta"></div>
-        </header>
-        <div class="print-fields" aria-hidden="true">
-          <span id="print-name">Name</span>
-          <span id="print-date">Datum</span>
-        </div>
-        <div id="worksheet"></div>
-        <div id="answer-boxes" class="answer-boxes" aria-hidden="true"></div>
-      </main>
+      <main id="worksheets" class="worksheets" aria-live="polite"></main>
     </div>
-    <div id="print-stack" class="print-stack" aria-hidden="true"></div>
 
     <script type="module" src="/main.ts"></script>
   </body>

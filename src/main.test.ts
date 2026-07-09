@@ -596,7 +596,25 @@ describe("project configuration", () => {
     expect(html).toMatch(/label\s*\{[\s\S]*min-width:\s*0/);
     expect(html).toMatch(/input,\s*select\s*\{[\s\S]*min-width:\s*0/);
   });
+
+  test("uses one visible worksheet list for screen and print", () => {
+    const html = readFileSync(sourceIndexHtmlFile, "utf8");
+    const printCss = html.slice(html.indexOf("@media print"));
+
+    expect(html).toContain('id="worksheets"');
+    expect(html).not.toContain("print-stack");
+    expect(printCss).toMatch(/\.controls\s*\{[\s\S]*display:\s*none/);
+    expect(cssRuleBody(printCss, ".app")).toContain("display: block");
+    expect(cssRuleBody(printCss, ".app")).not.toContain("display: none");
+  });
 });
+
+function cssRuleBody(html: string, selector: string): string {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = new RegExp(`${escapedSelector}\\s*\\{(?<body>[\\s\\S]*?)\\}`).exec(html);
+
+  return match?.groups?.body ?? "";
+}
 
 function expectOrthogonalPath(path: Point[]): void {
   for (let index = 0; index < path.length - 1; index += 1) {
