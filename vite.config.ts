@@ -1,4 +1,5 @@
 /// <reference types="vitest/config" />
+import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 
 function escapeRegExp(value: string): string {
@@ -11,63 +12,74 @@ function singleFileHtml(): Plugin {
     apply: "build",
     enforce: "post",
     generateBundle(_, bundle) {
-      const htmlFileName = Object.keys(bundle).find((fileName) => fileName.endsWith(".html"));
+      const htmlFiles = Object.entries(bundle).filter(
+        (entry): entry is [string, Extract<(typeof entry)[1], { type: "asset" }>] =>
+          entry[0].endsWith(".html") && entry[1].type === "asset",
+      );
 
-      if (!htmlFileName) {
+      if (htmlFiles.length === 0) {
         throw new Error("No HTML file was emitted.");
       }
 
-      const htmlAsset = bundle[htmlFileName];
+      const inlinedChunks = new Set<string>();
+      const inlinedStylesheets = new Set<string>();
 
-      if (!htmlAsset || htmlAsset.type !== "asset") {
-        throw new Error("HTML output is not an asset.");
-      }
+      for (const [, htmlAsset] of htmlFiles) {
+        let html = String(htmlAsset.source);
 
-      let html = String(htmlAsset.source);
+        for (const [fileName, item] of Object.entries(bundle)) {
+          if (item.type !== "chunk" || !item.isEntry) {
+            continue;
+          }
 
-      for (const [fileName, item] of Object.entries(bundle)) {
-        if (item.type !== "chunk" || !item.isEntry) {
-          continue;
+          const filePattern = escapeRegExp(fileName);
+          const code = item.code.replace(/<\/script/gi, "<\\/script");
+          const scriptPattern = new RegExp(
+            `<script\\b[^>]*\\bsrc=["'][^"']*${filePattern}["'][^>]*>\\s*</script>`,
+            "g",
+          );
+          const nextHtml = html.replace(
+            scriptPattern,
+            `<script type="module">\n${code}\n</script>`,
+          );
+
+          if (nextHtml !== html) {
+            html = nextHtml;
+            inlinedChunks.add(fileName);
+          }
         }
 
-        const filePattern = escapeRegExp(fileName);
-        const code = item.code.replace(/<\/script/gi, "<\\/script");
-        const scriptPattern = new RegExp(
-          `<script\\b[^>]*\\bsrc=["'][^"']*${filePattern}["'][^>]*>\\s*</script>`,
-          "g",
-        );
-        const nextHtml = html.replace(scriptPattern, `<script type="module">\n${code}\n</script>`);
+        for (const [fileName, item] of Object.entries(bundle)) {
+          if (item.type !== "asset" || !fileName.endsWith(".css")) {
+            continue;
+          }
 
-        if (nextHtml === html) {
+          const filePattern = escapeRegExp(fileName);
+          const css = String(item.source).replace(/<\/style/gi, "<\\/style");
+          const linkPattern = new RegExp(
+            `<link\\b[^>]*\\bhref=["'][^"']*${filePattern}["'][^>]*>`,
+            "g",
+          );
+          const nextHtml = html.replace(linkPattern, `<style>\n${css}\n</style>`);
+
+          if (nextHtml !== html) {
+            html = nextHtml;
+            inlinedStylesheets.add(fileName);
+          }
+        }
+
+        htmlAsset.source = html;
+      }
+
+      for (const [fileName, item] of Object.entries(bundle)) {
+        if (item.type === "chunk" && item.isEntry && !inlinedChunks.has(fileName)) {
           throw new Error(`Could not inline entry script ${fileName}.`);
         }
 
-        html = nextHtml;
-        delete bundle[fileName];
-      }
-
-      for (const [fileName, item] of Object.entries(bundle)) {
-        if (item.type !== "asset" || !fileName.endsWith(".css")) {
-          continue;
+        if (inlinedChunks.has(fileName) || inlinedStylesheets.has(fileName)) {
+          delete bundle[fileName];
         }
-
-        const filePattern = escapeRegExp(fileName);
-        const css = String(item.source).replace(/<\/style/gi, "<\\/style");
-        const linkPattern = new RegExp(
-          `<link\\b[^>]*\\bhref=["'][^"']*${filePattern}["'][^>]*>`,
-          "g",
-        );
-        const nextHtml = html.replace(linkPattern, `<style>\n${css}\n</style>`);
-
-        if (nextHtml === html) {
-          throw new Error(`Could not inline stylesheet ${fileName}.`);
-        }
-
-        html = nextHtml;
-        delete bundle[fileName];
       }
-
-      htmlAsset.source = html;
     },
   };
 }
@@ -82,6 +94,12 @@ export default defineConfig({
     cssCodeSplit: false,
     assetsInlineLimit: Number.MAX_SAFE_INTEGER,
     modulePreload: false,
+    rollupOptions: {
+      input: {
+        printer: fileURLToPath(new URL("./src/index.html", import.meta.url)),
+        dice: fileURLToPath(new URL("./src/dice/index.html", import.meta.url)),
+      },
+    },
   },
   plugins: [singleFileHtml()],
   test: {

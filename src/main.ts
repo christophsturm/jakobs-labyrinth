@@ -260,6 +260,7 @@ type LanguageLabels = {
   deletePuzzle: (index: number) => string;
   demo: string;
   emptyState: string;
+  diceToolLink: string;
   githubLink: string;
   printSource: string;
   showSolution: string;
@@ -310,6 +311,7 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       deletePuzzle: (index) => `Puzzle ${index} löschen`,
       demo: "Demo",
       emptyState: "Noch keine Puzzles. Lege links dein erstes an.",
+      diceToolLink: "Zum Würfeltool",
       githubLink: "Auf GitHub ansehen",
       printSource: "Erstellt mit",
       showSolution: "Lösung anzeigen",
@@ -367,6 +369,7 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       deletePuzzle: (index) => `Delete puzzle ${index}`,
       demo: "Demo",
       emptyState: "No puzzles yet. Add your first one on the left.",
+      diceToolLink: "Open dice tool",
       githubLink: "View on GitHub",
       printSource: "Created with",
       showSolution: "Show solution",
@@ -423,6 +426,7 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       deletePuzzle: (index) => `Elimina il puzzle ${index}`,
       demo: "Esempio",
       emptyState: "Non ci sono ancora puzzle. Aggiungi il primo a sinistra.",
+      diceToolLink: "Apri i dadi",
       githubLink: "Vedi su GitHub",
       printSource: "Creato con",
       showSolution: "Mostra soluzione",
@@ -480,6 +484,7 @@ const languageConfigs: Record<PuzzleLanguage, LanguageConfig> = {
       deletePuzzle: (index) => `Supprimer le puzzle ${index}`,
       demo: "Démo",
       emptyState: "Aucun puzzle pour l’instant. Ajoutez le premier à gauche.",
+      diceToolLink: "Ouvrir les dés",
       githubLink: "Voir sur GitHub",
       printSource: "Créé avec",
       showSolution: "Afficher solution",
@@ -2292,6 +2297,7 @@ function bindApp(): void {
   const printButton = byId<HTMLButtonElement>("print");
   const worksheets = byId<HTMLDivElement>("worksheets");
   const status = byId<HTMLParagraphElement>("status");
+  const diceToolLinkLabel = byId<HTMLSpanElement>("dice-tool-link-label");
   const githubLinkLabel = byId<HTMLSpanElement>("github-link-label");
 
   let puzzles: Puzzle[] = [];
@@ -2439,6 +2445,7 @@ function bindApp(): void {
     sizeLabel.textContent = labels.sizeField;
     difficultyLabel.textContent = labels.difficultyField;
     mazeLetterAmountLabel.textContent = labels.mazeLetterAmountField;
+    diceToolLinkLabel.textContent = labels.diceToolLink;
     githubLinkLabel.textContent = labels.githubLink;
     addPuzzleButton.textContent = labels.addPuzzle;
     printButton.textContent = labels.print;

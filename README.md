@@ -1,12 +1,12 @@
 # Jakob's Maze Printer
 
-A small browser tool for creating and printing letter puzzles. Development uses
-Vite and TypeScript; the production build produces a single, self-contained HTML
-file.
+A small browser tool for creating and printing letter puzzles, plus a separate
+dice roller. Development uses Vite and TypeScript; the production build produces
+two self-contained HTML pages.
 
-The source files live in `src/`. `src/index.html` is the Vite entry point and is
-not opened directly in the browser; the app runs through `pnpm dev` during local
-development.
+The source files live in `src/`. `src/index.html` is the printer entry point and
+`src/dice/index.html` is the dice tool entry point. They are not opened directly
+in the browser; the apps run through `pnpm dev` during local development.
 
 The app provides two puzzle types:
 
@@ -28,7 +28,8 @@ pnpm install
 pnpm dev
 ```
 
-The app is then available at `http://127.0.0.1:5173/`.
+The printer is then available at `http://127.0.0.1:5173/`, and the dice tool at
+`http://127.0.0.1:5173/dice/`.
 
 ## Checks
 
@@ -50,14 +51,14 @@ This command runs:
 pnpm build
 ```
 
-The distributable file is:
+The distributable pages are:
 
 ```txt
 dist/index.html
+dist/dice/index.html
 ```
 
-It can be renamed to `jakobs-labyrinth-drucker.html` and opened directly in a
-browser when needed.
+Each page contains its own scripts and styles without external build assets.
 
 ## Usage
 
@@ -75,3 +76,16 @@ The solution word is omitted from a printed maze's heading. Empty boxes are
 printed instead so the found word can be filled in. The printout also includes
 the app's base URL. The browser's print dialog can be used to save the puzzles as
 a PDF.
+
+## Dice tool
+
+The dice tool is intentionally separate from the printer and offers four sets:
+
+- `Color & shape`: independently rolls one of four colors and one of four
+  geometric shapes.
+- `Kniffel`: rolls five six-sided dice.
+- `Two dice`: rolls two six-sided dice.
+- `Custom set`: rolls between one and twelve W4, W6, W8, W10, W12, or W20 dice.
+
+Tap the playing area or press Space to roll again. The selected set is preserved
+in the URL so a specific setup can be bookmarked.

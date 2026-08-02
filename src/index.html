@@ -157,15 +157,21 @@
         line-height: 1.35;
       }
 
-      .github-link {
+      .sidebar-links {
+        display: grid;
+        gap: 9px;
+        margin-top: 2px;
+        padding-top: 10px;
+        border-top: 1px solid #3b463f;
+      }
+
+      .sidebar-link {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 10px;
-        margin-top: 2px;
-        padding: 10px 2px 0;
+        padding: 1px 2px;
         color: #d9e0d7;
-        border-top: 1px solid #3b463f;
         font-size: 0.8rem;
         font-weight: 800;
         letter-spacing: 0.04em;
@@ -173,17 +179,17 @@
         text-transform: uppercase;
       }
 
-      .github-link:hover {
+      .sidebar-link:hover {
         color: #f9d64a;
       }
 
-      .github-link:focus-visible {
+      .sidebar-link:focus-visible {
         color: #f9d64a;
         outline: 2px solid #f9d64a;
         outline-offset: 4px;
       }
 
-      .github-link-arrow {
+      .sidebar-link-arrow {
         color: #f9d64a;
         font-size: 1.05rem;
         line-height: 1;
@@ -531,15 +537,21 @@
 
         <p id="status" class="status" role="status" aria-live="polite"></p>
 
-        <a
-          class="github-link"
-          href="https://github.com/christophsturm/jakobs-labyrinth"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <span id="github-link-label">Auf GitHub ansehen</span>
-          <span class="github-link-arrow" aria-hidden="true">↗</span>
-        </a>
+        <nav class="sidebar-links" aria-label="Weitere Links">
+          <a class="sidebar-link" href="./dice/">
+            <span id="dice-tool-link-label">Zum Würfeltool</span>
+            <span class="sidebar-link-arrow" aria-hidden="true">→</span>
+          </a>
+          <a
+            class="sidebar-link"
+            href="https://github.com/christophsturm/jakobs-labyrinth"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span id="github-link-label">Auf GitHub ansehen</span>
+            <span class="sidebar-link-arrow" aria-hidden="true">↗</span>
+          </a>
+        </nav>
       </aside>
 
       <main id="worksheets" class="worksheets" aria-live="polite"></main>

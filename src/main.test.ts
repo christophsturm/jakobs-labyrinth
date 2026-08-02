@@ -28,6 +28,7 @@ import {
 
 const packageJsonFile = new URL("../package.json", import.meta.url);
 const sourceIndexHtmlFile = new URL("index.html", import.meta.url);
+const viteConfigFile = new URL("../vite.config.ts", import.meta.url);
 
 describe("normalizeWord", () => {
   test("keeps German uppercase letters and removes separators", () => {
@@ -668,6 +669,13 @@ describe("project configuration", () => {
     expect(packageJson.scripts["fmt:check"]).toBe("oxfmt --check .");
   });
 
+  test("builds the printer and dice tool as separate HTML entries", () => {
+    const config = readFileSync(viteConfigFile, "utf8");
+
+    expect(config).toContain('new URL("./src/index.html"');
+    expect(config).toContain('new URL("./src/dice/index.html"');
+  });
+
   test("print CSS hides SVG solution layers", () => {
     const html = readFileSync(sourceIndexHtmlFile, "utf8");
 
@@ -715,6 +723,7 @@ describe("project configuration", () => {
     const printCss = html.slice(html.indexOf("@media print"));
 
     expect(html).toContain('href="https://github.com/christophsturm/jakobs-labyrinth"');
+    expect(html).toContain('href="./dice/"');
     expect(html).toMatch(/\.print-source\s*\{[\s\S]*display:\s*none/);
     expect(printCss).toMatch(/\.print-source\s*\{[\s\S]*display:\s*block/);
   });
