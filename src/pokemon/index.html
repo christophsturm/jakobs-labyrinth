@@ -426,6 +426,17 @@
       .custom-format button {
         font-size: 0.75rem;
       }
+      .custom-format .check-field {
+        margin: 0;
+      }
+      input:read-only {
+        background: #eef1e8;
+        color: var(--muted);
+      }
+      #print-test {
+        margin-top: 12px;
+        font-size: 0.75rem;
+      }
       .error {
         color: #a23220;
         font-size: 0.76rem;
@@ -772,10 +783,8 @@
         }
         .print-sheet-page {
           display: block;
-          position: relative;
           width: 204mm;
-          /* A 0.5 mm allowance avoids rounding overflow in Safari pagination.
-             Only the blank outer edge is clipped; the SVG stays exactly A4. */
+          /* The SVG uses the same physical size and viewBox span: 1 unit = 1 mm. */
           height: 290.5mm;
           margin: 0;
           padding: 0;
@@ -790,12 +799,9 @@
           break-before: auto;
         }
         #print-sheets .label-sheet {
-          position: absolute;
-          /* Compensate for @page margins without scaling label coordinates. */
-          top: -3mm;
-          left: -3mm;
-          width: 210mm;
-          height: 297mm;
+          width: 204mm;
+          height: 290.5mm;
+          max-width: none;
           aspect-ratio: auto;
         }
         .label-hit {
@@ -854,8 +860,8 @@
             </div>
             <div id="catalog" class="catalog" aria-label="Pokémon-Auswahl"></div>
             <p id="card-help" class="catalog-help" hidden>
-              44 deutsche Illustrations-, ex- und Goldkarten. Auf breiten Etiketten werden sie
-              vollständig um 90° gedreht gedruckt. Quelle:
+              <span id="card-count">58</span> deutsche Sammelkarten, auch Mega-Gengar-ex und Gengar
+              VMAX. Auf breiten Etiketten werden sie vollständig um 90° gedreht gedruckt. Quelle:
               <a href="https://tcgdex.dev/de" target="_blank" rel="noopener noreferrer"
                 >TCGdex (Community)</a
               >. Der echte Glitzereffekt einer Folienkarte lässt sich auf Papier nicht mitdrucken.
@@ -883,6 +889,9 @@
             </div>
             <label class="field-label">Etikettenformat<select id="format"></select></label>
             <form id="custom-format" class="custom-format" hidden>
+              <label class="check-field"
+                ><input id="auto-size" type="checkbox" checked />Größe aus Raster berechnen</label
+              >
               <div class="field-row">
                 <label class="field-label"
                   >Spalten<input
@@ -911,7 +920,7 @@
                     type="number"
                     min="10"
                     max="210"
-                    step="0.001"
+                    step="any"
                     value="70"
                     required /></label
                 ><label class="field-label"
@@ -920,7 +929,7 @@
                     type="number"
                     min="10"
                     max="297"
-                    step="0.001"
+                    step="any"
                     value="37.125"
                     required
                 /></label>
@@ -967,6 +976,10 @@
                     required
                 /></label>
               </div>
+              <p id="auto-size-help" class="fine-print">
+                A4 wird gleichmäßig aufgeteilt. Außenränder sind links/rechts und oben/unten gleich.
+                Ohne Ränder und Abstände füllen die Etiketten das ganze Blatt.
+              </p>
               <button type="submit">Format anwenden</button>
               <p id="format-error" class="error" role="alert"></p>
             </form>
@@ -1006,6 +1019,13 @@
                 Negative Werte verschieben nach links bzw. oben. Zuerst auf normalem Papier testen;
                 Motive am Blattrand können bei zu großem Versatz abgeschnitten werden.
               </p>
+              <button id="print-test" type="button">Testblatt mit Messmarken drucken</button>
+              <p class="fine-print">
+                Beide Messstrecken müssen 100 mm lang sein. Halte das Testblatt hinter den
+                Etikettenbogen: Die Kreuze gehören in die Mitte jedes Etiketts. Wandert der Versatz
+                von Reihe zu Reihe, zuerst die Druckskalierung prüfen; bei gleichem Versatz den
+                Offset einstellen.
+              </p>
             </details>
           </section>
         </aside>
@@ -1044,9 +1064,10 @@
             <span class="note-mark" aria-hidden="true">i</span>
             <p>
               <strong>So passt es auf die Etiketten:</strong> A4 · Hochformat · 100 % / tatsächliche
-              Größe · einseitig · Kopf- und Fußzeilen aus. Die Druckvorlage berücksichtigt 3 mm
-              Druckrand; die Etikettenpositionen bleiben maßstabsgetreu. Hilfslinien werden nicht
-              gedruckt. PDF-Speichern geht im Druckdialog.
+              Größe · einseitig · Kopf- und Fußzeilen aus. Unter „Papierhandhabung“ die Option „An
+              Papierformat anpassen“ ausschalten. Normales A4 wählen; Randlosdruck kann das Motiv
+              vergrößern. Beim Drucken aus „Vorschau“ ebenfalls 100 % wählen. Hilfslinien werden
+              nicht gedruckt. PDF-Speichern geht im Druckdialog.
             </p>
           </div>
           <p id="status" class="status" role="status" aria-live="polite"></p>

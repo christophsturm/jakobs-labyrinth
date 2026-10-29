@@ -3,17 +3,48 @@ import {
   defaultFormat,
   emptySheet,
   fillEmptySlots,
+  fitLabelsToA4,
   formatError,
   labelPositions,
   nextEmptySlot,
   reflowSheets,
   renderSheetSvg,
   renderPrintSheets,
+  renderCalibrationSheet,
   swapSlots,
   type Artwork,
 } from "./layout";
 
 describe("physical label layout", () => {
+  test("derives full-sheet labels from the row and column counts", () => {
+    const grid = { columns: 2, rows: 4, marginX: 0, marginY: 0, gapX: 0, gapY: 0 };
+    expect(fitLabelsToA4(grid)).toMatchObject({ width: 105, height: 74.25 });
+    expect(fitLabelsToA4({ ...grid, columns: 3, rows: 8 })).toMatchObject({
+      width: 70,
+      height: 37.125,
+    });
+    const thirds = fitLabelsToA4({ ...grid, columns: 6, rows: 7 });
+    const last = labelPositions(thirds).at(-1)!;
+    expect(last.x + last.width).toBeCloseTo(210, 8);
+    expect(last.y + last.height).toBeCloseTo(297, 8);
+  });
+
+  test("subtracts both outer margins and all internal gaps when fitting labels", () => {
+    const format = fitLabelsToA4({
+      columns: 2,
+      rows: 4,
+      marginX: 5,
+      marginY: 10,
+      gapX: 2,
+      gapY: 3,
+    });
+    expect(format).toMatchObject({ width: 99, height: 67 });
+    const last = labelPositions(format).at(-1)!;
+    expect(last.x + last.width).toBe(205);
+    expect(last.y + last.height).toBe(287);
+    expect(() => fitLabelsToA4({ ...format, columns: 0 })).toThrow(RangeError);
+    expect(() => fitLabelsToA4({ ...format, marginX: 110 })).toThrow(RangeError);
+  });
   test("covers A4 with exactly 24 labels without margins or gaps", () => {
     const positions = labelPositions(defaultFormat);
     expect(positions).toHaveLength(24);
@@ -159,7 +190,40 @@ describe("SVG print output", () => {
     expect(html.match(/<image /g)).toHaveLength(2);
     expect(html).toContain('id="label-clip-1-0"');
     expect(html).toContain('id="label-clip-3-0"');
+    // The physical SVG size matches its viewBox span, so every unit stays 1 mm.
+    expect(html).toContain('width="204mm" height="290.5mm" viewBox="3 3 204 290.5"');
+    expect(html).not.toContain('width="210mm"');
     expect(renderPrintSheets([empty], defaultFormat, artworks, options)).toBe("");
+  });
+  test("keeps label guides fixed while offsetting the artwork", () => {
+    const svg = renderSheetSvg(
+      sheet,
+      defaultFormat,
+      artworks,
+      { names: false, scale: 100, offsetX: 2, offsetY: -3 },
+      0,
+      0,
+    );
+    expect(svg).toContain('<g transform="translate(0 0)" data-slot="0"');
+    expect(svg).toContain('<g transform="translate(0 37.125)" data-slot="3"');
+    expect(svg.match(/class="label-content" transform="translate\(2 -3\)"/g)).toHaveLength(24);
+    expect(svg).not.toContain('class="label-sheet"><g transform="translate(2 -3)"');
+  });
+  test("prints a single calibration page with all centres and two 100 mm rulers", () => {
+    const html = renderCalibrationSheet(defaultFormat, {
+      names: false,
+      scale: 40,
+      offsetX: 0,
+      offsetY: -2,
+    });
+    expect(html.match(/class="print-sheet-page"/g)).toHaveLength(1);
+    expect(html.match(/data-calibration-slot=/g)).toHaveLength(24);
+    expect(html).toContain('data-calibration-slot="0" transform="translate(35 18.5625)"');
+    expect(html).toContain('data-calibration-slot="23" transform="translate(175 278.4375)"');
+    expect(html).toContain('transform="translate(0 -2)"');
+    expect(html).toContain("M 55 289 H 155");
+    expect(html).toContain("M 202 98.5 V 198.5");
+    expect(html).not.toContain("<image");
   });
   test("rotates a full card for landscape labels and retains an upright card on portrait labels", () => {
     const cards = new Map<string, Artwork>([

@@ -62,7 +62,7 @@ dist/pokemon/index.html
 ```
 
 Each page contains its own scripts and styles without external build assets.
-The Pokémon page also embeds all 151 Pokémon images and 44 card images and can
+The Pokémon page also embeds all 151 Pokémon images and 58 card images and can
 be used offline.
 
 ## Usage
@@ -102,6 +102,10 @@ The first stock format is an A4 Zweckform sheet with 3 columns and 8 rows:
 assumed product number. Further stock formats can be added to `labelFormats` in
 `src/pokemon/layout.ts`; the app also accepts custom A4 dimensions, margins and
 gutters and checks that the grid fits on the page.
+Custom formats can calculate label sizes automatically from rows and columns,
+subtracting equal outer margins on opposite sides and the gaps between labels.
+For example, 2 × 4 without margins produces 105 × 74.25 mm labels. Automatic
+sizing can be disabled to enter dimensions manually.
 
 - Search the first 151 Pokémon by German or English name or Pokédex number.
 - Click a picture to place it in the selected label. The selection moves to the
@@ -110,29 +114,38 @@ gutters and checks that the grid fits on the page.
   with another picture. Dropping outside the sheet or pressing Escape cancels
   the move. Arrow keys navigate; Shift + arrow keys move/swap; Enter, Space and
   Delete clear a selected picture. Changes can be undone.
-- The `Sammelkarten` tab contains 44 German illustration, ex and gold cards from
-  the community database [TCGdex](https://tcgdex.dev/de), from the sets `151` and
-  `Prismatische Entwicklungen`. Cards rotate 90° on landscape labels and retain
+- The `Sammelkarten` tab contains 58 German cards from the community database
+  [TCGdex](https://tcgdex.dev/de), including `151`, `Prismatische Entwicklungen`
+  and 14 Gengar variants (Mega-Gengar-ex, Gengar VMAX, Gengar & Mimigma GX and more).
+  Searching for `Super Gengar` also finds the Mega-Gengar cards.
+  Cards rotate 90° on landscape labels and retain
   their full image and proportions. The printed image cannot reproduce foil shine.
 - Fill the remaining empty labels with the last selected picture, clear individual
   labels or the entire sheet, and undo edits. Empty positions are preserved for
   partially used sheets.
 - Add multiple sheets. Entirely empty sheets are skipped during printing.
 - Optionally print names, reduce picture size or adjust the print offset in mm.
+  Offsets move the artwork while the preview's label guides stay fixed.
+  Print a calibration sheet from the offset controls to check the label centres
+  and horizontal/vertical 100 mm rulers on plain paper.
 - Upload PNG, JPEG or WebP images (up to 12 MB each). Uploads stay local; the
   current layout and uploads last only for the current browser session.
 - Use the browser print dialog to print or save as PDF. Select **A4, portrait,
-  100% / actual size, single-sided, and no headers or footers**. Preview guides,
+  100% / actual size, single-sided, and no headers or footers**. Disable scale-to-fit
+  under Paper Handling; use normal A4 rather than borderless enlargement. When
+  printing the PDF from Preview, also select 100%. Preview guides,
   selection borders and label numbers are omitted from printouts. First test
   alignment on plain paper; the printer's unprintable margins still apply.
 
 Printing uses a separate, direct child of the document body, populated for both
 the print button and the browser's Print command. It contains only nonempty
-sheets. A 3 mm page margin and a compensating SVG offset preserve the original
-210 × 297 mm coordinates. The flow box leaves 0.5 mm of rounding tolerance at
-the bottom; the SVG itself is never scaled. Page breaks occur before subsequent
-sheets, avoiding a trailing blank page. This avoids relying on the editor's
-responsive layout when Safari paginates the document.
+sheets. With a 3 mm page margin, the print SVG measures 204 × 290.5 mm and uses
+the viewBox `3 3 204 290.5`: one SVG unit remains one physical millimetre, and
+label coordinates still refer to the full A4 sheet. This crops the outer print
+margin without oversized elements or negative CSS offsets. The bottom leaves
+0.5 mm of pagination tolerance. Page breaks occur before subsequent sheets,
+avoiding a trailing blank page. Printer scaling still needs to be disabled in
+the system print dialog; the app cannot control that setting.
 
 The artwork comes from the [PokeAPI sprites repository](https://github.com/PokeAPI/sprites)
 (`sprites/pokemon/other/official-artwork/1.png` through `151.png`). The images are

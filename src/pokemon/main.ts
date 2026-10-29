@@ -5,12 +5,14 @@ import {
   defaultFormat,
   emptySheet,
   fillEmptySlots,
+  fitLabelsToA4,
   formatError,
   labelFormats,
   nextEmptySlot,
   reflowSheets,
   renderSheetSvg,
   renderPrintSheets,
+  renderCalibrationSheet,
   swapSlots,
   type Artwork,
   type LabelFormat,
@@ -49,6 +51,7 @@ for (const card of cardEntries) {
     image,
     kind: "card",
     caption: `${card.set} · ${card.number}`,
+    aliases: card.aliases ?? [],
   });
 }
 
@@ -75,6 +78,7 @@ function start(): void {
   const sheetsContainer = byId<HTMLDivElement>("sheets");
   const formatSelect = byId<HTMLSelectElement>("format");
   const customForm = byId<HTMLFormElement>("custom-format");
+  const autoSizeInput = byId<HTMLInputElement>("auto-size");
   const printButton = byId<HTMLButtonElement>("print");
   const status = byId<HTMLParagraphElement>("status");
   const undoButton = byId<HTMLButtonElement>("undo");
@@ -95,6 +99,7 @@ function start(): void {
   let chosenId = "25";
   let filter = "favorites";
   let printing = false;
+  let printMode: "labels" | "calibration" = "labels";
   let uploadSequence = 0;
   const history: EditorState[] = [];
   const printOptions: PrintOptions = { names: false, scale: 100, offsetX: 0, offsetY: 0 };
@@ -128,6 +133,51 @@ function start(): void {
     ] as const) {
       (customForm.elements.namedItem(key) as HTMLInputElement).value = String(state.format[key]);
     }
+    for (const key of ["width", "height"]) {
+      (customForm.elements.namedItem(key) as HTMLInputElement).readOnly = autoSizeInput.checked;
+    }
+  }
+
+  function readCustomFormat(): LabelFormat {
+    const value = (key: string) =>
+      (customForm.elements.namedItem(key) as HTMLInputElement).valueAsNumber;
+    const grid = {
+      columns: value("columns"),
+      rows: value("rows"),
+      marginX: value("marginX"),
+      marginY: value("marginY"),
+      gapX: value("gapX"),
+      gapY: value("gapY"),
+    };
+    return autoSizeInput.checked
+      ? fitLabelsToA4(grid)
+      : {
+          ...grid,
+          id: "custom",
+          name: "Eigenes A4-Format",
+          width: value("width"),
+          height: value("height"),
+        };
+  }
+
+  function calculateCustomSize(): void {
+    byId("auto-size-help").hidden = !autoSizeInput.checked;
+    for (const key of ["width", "height"]) {
+      (customForm.elements.namedItem(key) as HTMLInputElement).readOnly = autoSizeInput.checked;
+    }
+    if (!autoSizeInput.checked) {
+      byId("format-error").textContent = "";
+      return;
+    }
+    try {
+      const format = readCustomFormat();
+      for (const key of ["width", "height"] as const) {
+        (customForm.elements.namedItem(key) as HTMLInputElement).value = String(format[key]);
+      }
+      byId("format-error").textContent = "";
+    } catch (error) {
+      byId("format-error").textContent = (error as Error).message;
+    }
   }
 
   function renderCatalog(): void {
@@ -143,11 +193,12 @@ function start(): void {
                 : !id.startsWith("upload-") && kind !== "card",
           );
     const entries = source.filter(
-      ({ id, name, caption }) =>
+      ({ id, name, caption, aliases }) =>
         !query ||
         name.toLocaleLowerCase("de").includes(query) ||
         (caption?.toLocaleLowerCase("de").includes(query) ?? false) ||
         (englishNames.get(id)?.toLowerCase().includes(query) ?? false) ||
+        (aliases?.some((alias) => alias.toLocaleLowerCase("de").includes(query)) ?? false) ||
         id === query.replace(/^#?0*/, ""),
     );
     const fragment = document.createDocumentFragment();
@@ -222,6 +273,7 @@ function start(): void {
         ? `${printable} Bögen drucken`
         : "Bogen drucken";
     printButton.disabled = printing || printable === 0;
+    byId<HTMLButtonElement>("print-test").disabled = printing;
     byId<HTMLButtonElement>("previous-page").disabled = state.page === 0;
     byId<HTMLButtonElement>("next-page").disabled = state.page === state.sheets.length - 1;
     byId<HTMLButtonElement>("clear-slot").disabled = !selected;
@@ -288,7 +340,10 @@ function start(): void {
 
   function preparePrint(): void {
     cancelDrag();
-    printSheets.innerHTML = renderPrintSheets(state.sheets, state.format, artworks, printOptions);
+    printSheets.innerHTML =
+      printMode === "calibration"
+        ? renderCalibrationSheet(state.format, printOptions)
+        : renderPrintSheets(state.sheets, state.format, artworks, printOptions);
   }
 
   function placeArtwork(id: string): void {
@@ -495,6 +550,7 @@ function start(): void {
   formatSelect.addEventListener("change", () => {
     customForm.hidden = formatSelect.value !== "custom";
     if (formatSelect.value === "custom") {
+      calculateCustomSize();
       announce("Eigene Maße eingeben und mit „Format anwenden“ übernehmen.");
     } else {
       const format = labelFormats.find(({ id }) => id === formatSelect.value);
@@ -503,20 +559,13 @@ function start(): void {
   });
   customForm.addEventListener("submit", (event) => {
     event.preventDefault();
-    const values = new FormData(customForm);
-    setFormat({
-      id: "custom",
-      name: "Eigenes A4-Format",
-      columns: Number(values.get("columns")),
-      rows: Number(values.get("rows")),
-      width: Number(values.get("width")),
-      height: Number(values.get("height")),
-      marginX: Number(values.get("marginX")),
-      marginY: Number(values.get("marginY")),
-      gapX: Number(values.get("gapX")),
-      gapY: Number(values.get("gapY")),
-    });
+    try {
+      setFormat(readCustomFormat());
+    } catch (error) {
+      byId("format-error").textContent = (error as Error).message;
+    }
   });
+  customForm.addEventListener("input", calculateCustomSize);
   namesInput.addEventListener("change", () => {
     printOptions.names = namesInput.checked;
     renderSheets();
@@ -570,19 +619,24 @@ function start(): void {
       `${added} eigene Bilder hinzugefügt.${rejected.length ? ` Nicht geladen: ${rejected.join(", ")}. Erlaubt sind PNG, JPG und WebP bis 12 MB pro Bild.` : " Sie bleiben lokal in diesem Browserfenster."}`,
     );
   });
-  printButton.addEventListener("click", async () => {
-    if (printing || !state.sheets.some((sheet) => sheet.some(Boolean))) return;
+  async function print(mode: "labels" | "calibration"): Promise<void> {
+    if (printing || (mode === "labels" && !state.sheets.some((sheet) => sheet.some(Boolean))))
+      return;
+    printMode = mode;
     printing = true;
     renderSheets();
     const ids = new Set(state.sheets.flat().filter((id): id is string => id !== null));
     try {
-      await Promise.all([...ids].map((id) => decodeImage(artworks.get(id)!.image)));
+      if (mode === "labels")
+        await Promise.all([...ids].map((id) => decodeImage(artworks.get(id)!.image)));
       preparePrint();
       // Give inline SVG images a painted frame before opening the print dialog.
       await new Promise<void>((resolve) =>
         requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
       );
-      announce("Im Druckdialog: A4, 100 %, einseitig, Kopf- und Fußzeilen aus.");
+      announce(
+        "Im Druckdialog: A4, 100 %, einseitig, keine Anpassung an das Papierformat, Kopf- und Fußzeilen aus.",
+      );
       window.print();
     } catch {
       announce(
@@ -592,8 +646,14 @@ function start(): void {
       printing = false;
       renderSheets();
     }
-  });
+  }
+  printButton.addEventListener("click", () => void print("labels"));
+  byId("print-test").addEventListener("click", () => void print("calibration"));
   window.addEventListener("beforeprint", preparePrint);
+  window.addEventListener("afterprint", () => {
+    printMode = "labels";
+  });
+  byId("card-count").textContent = String(cardEntries.length);
   updateFormatFields();
   renderCatalog();
   renderSheets();

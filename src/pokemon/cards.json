@@ -350,5 +350,123 @@
     "set": "Prismatische Entwicklungen",
     "source": "https://assets.tcgdex.net/de/sv/sv08.5/179/high.webp",
     "apiSource": "https://api.tcgdex.net/v2/de/cards/sv08.5-179"
+  },
+  {
+    "id": "me02.5-284",
+    "name": "Mega-Gengar-ex",
+    "number": "284",
+    "set": "Erhabene Helden",
+    "source": "https://assets.tcgdex.net/de/me/me02.5/284/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/me02.5-284",
+    "aliases": ["Mega Gengar", "Super Gengar", "Super-Gengar"]
+  },
+  {
+    "id": "me02.5-269",
+    "name": "Mega-Gengar-ex",
+    "number": "269",
+    "set": "Erhabene Helden",
+    "source": "https://assets.tcgdex.net/de/me/me02.5/269/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/me02.5-269",
+    "aliases": ["Mega Gengar", "Super Gengar", "Super-Gengar"]
+  },
+  {
+    "id": "me02.5-125",
+    "name": "Mega-Gengar-ex",
+    "number": "125",
+    "set": "Erhabene Helden",
+    "source": "https://assets.tcgdex.net/de/me/me02.5/125/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/me02.5-125",
+    "aliases": ["Mega Gengar", "Super Gengar", "Super-Gengar"]
+  },
+  {
+    "id": "me02-056",
+    "name": "Mega-Gengar-ex",
+    "number": "056",
+    "set": "Fatale Flammen",
+    "source": "https://assets.tcgdex.net/de/me/me02/056/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/me02-056",
+    "aliases": ["Mega Gengar", "Super Gengar", "Super-Gengar"]
+  },
+  {
+    "id": "xy4-35",
+    "name": "M-Gengar EX",
+    "number": "35",
+    "set": "Phantomkräfte",
+    "source": "https://assets.tcgdex.net/de/xy/xy4/35/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/xy4-35",
+    "aliases": ["Mega Gengar", "Super Gengar", "Super-Gengar"]
+  },
+  {
+    "id": "xy4-121",
+    "name": "M-Gengar EX",
+    "number": "121",
+    "set": "Phantomkräfte",
+    "source": "https://assets.tcgdex.net/de/xy/xy4/121/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/xy4-121",
+    "aliases": ["Mega Gengar", "Super Gengar", "Super-Gengar"]
+  },
+  {
+    "id": "xy4-114",
+    "name": "Gengar EX",
+    "number": "114",
+    "set": "Phantomkräfte",
+    "source": "https://assets.tcgdex.net/de/xy/xy4/114/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/xy4-114"
+  },
+  {
+    "id": "swsh8-271",
+    "name": "Gengar VMAX",
+    "number": "271",
+    "set": "Fusionsangriff",
+    "source": "https://assets.tcgdex.net/de/swsh/swsh8/271/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/swsh8-271"
+  },
+  {
+    "id": "swsh8-157",
+    "name": "Gengar VMAX",
+    "number": "157",
+    "set": "Fusionsangriff",
+    "source": "https://assets.tcgdex.net/de/swsh/swsh8/157/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/swsh8-157"
+  },
+  {
+    "id": "swsh8-156",
+    "name": "Gengar V",
+    "number": "156",
+    "set": "Fusionsangriff",
+    "source": "https://assets.tcgdex.net/de/swsh/swsh8/156/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/swsh8-156"
+  },
+  {
+    "id": "sm9-165",
+    "name": "Gengar & Mimigma GX",
+    "number": "165",
+    "set": "Teams Sind Trumpf",
+    "source": "https://assets.tcgdex.net/de/sm/sm9/165/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sm9-165"
+  },
+  {
+    "id": "sm9-186",
+    "name": "Gengar & Mimigma GX",
+    "number": "186",
+    "set": "Teams Sind Trumpf",
+    "source": "https://assets.tcgdex.net/de/sm/sm9/186/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sm9-186"
+  },
+  {
+    "id": "sv05-193",
+    "name": "Gengar-ex",
+    "number": "193",
+    "set": "Gewalten der Zeit",
+    "source": "https://assets.tcgdex.net/de/sv/sv05/193/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv05-193"
+  },
+  {
+    "id": "sv03.5-094",
+    "name": "Gengar",
+    "number": "094",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/094/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-094"
   }
 ]

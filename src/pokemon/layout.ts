@@ -29,15 +29,37 @@ export const labelFormats: readonly LabelFormat[] = [
 
 export const defaultFormat = labelFormats[0]!;
 
+type Viewport = { x: number; y: number; width: number; height: number };
+const sheetViewport: Viewport = { x: 0, y: 0, width: 210, height: 297 };
+// Matches the 3 mm @page margin, with 0.5 mm pagination tolerance at the bottom.
+// Cropping the viewport preserves millimetres without an oversized SVG or CSS offsets.
+const printViewport: Viewport = { x: 3, y: 3, width: 204, height: 290.5 };
+
 export type Artwork = {
   id: string;
   name: string;
   image: string;
   kind?: "card";
   caption?: string;
+  aliases?: readonly string[];
 };
 export type Sheet = (string | null)[];
 export type PrintOptions = { names: boolean; scale: number; offsetX: number; offsetY: number };
+
+export function fitLabelsToA4(
+  grid: Pick<LabelFormat, "columns" | "rows" | "marginX" | "marginY" | "gapX" | "gapY">,
+): LabelFormat {
+  const format = {
+    ...grid,
+    id: "custom",
+    name: "Eigenes A4-Format",
+    width: (210 - 2 * grid.marginX - (grid.columns - 1) * grid.gapX) / grid.columns,
+    height: (297 - 2 * grid.marginY - (grid.rows - 1) * grid.gapY) / grid.rows,
+  };
+  const error = formatError(format);
+  if (error) throw new RangeError(error);
+  return format;
+}
 
 export function formatError(format: LabelFormat): string | null {
   const { columns, rows, width, height, marginX, marginY, gapX, gapY } = format;
@@ -126,11 +148,30 @@ export function renderPrintSheets(
     .flatMap((sheet, page) =>
       sheet.some(Boolean)
         ? [
-            `<div class="print-sheet-page">${renderSheetSvg(sheet, format, artworks, options, page, -1)}</div>`,
+            `<div class="print-sheet-page">${renderSheetSvg(sheet, format, artworks, options, page, -1, printViewport)}</div>`,
           ]
         : [],
     )
     .join("");
+}
+
+export function renderCalibrationSheet(format: LabelFormat, options: PrintOptions): string {
+  const marks = labelPositions(format)
+    .map(({ x, y, width, height }, index) => {
+      const cx = x + width / 2;
+      const cy = y + height / 2;
+      return `<g data-calibration-slot="${index}" transform="translate(${cx} ${cy})"><path d="M -4 0 H 4 M 0 -4 V 4" fill="none" stroke="black" stroke-width="0.2" /><text x="5" y="-1" font-size="2.5">${index + 1}</text></g>`;
+    })
+    .join("");
+  const content = `<g fill="black" font-family="sans-serif">
+    <text x="105" y="7" text-anchor="middle" font-size="3.5">Etiketten-Testblatt · A4 · 100 %</text>
+    <text x="105" y="11" text-anchor="middle" font-size="2.5">Kreuze = Etikettenmitten · Beide Messstrecken müssen genau 100 mm lang sein.</text>
+    <g transform="translate(${options.offsetX} ${options.offsetY})">${marks}</g>
+    <path d="M 55 287 V 291 M 55 289 H 155 M 155 287 V 291 M 200 98.5 H 204 M 202 98.5 V 198.5 M 200 198.5 H 204" fill="none" stroke="black" stroke-width="0.2" />
+    <text x="105" y="286" text-anchor="middle" font-size="3">100 mm</text>
+    <text transform="translate(200 148.5) rotate(-90)" text-anchor="middle" font-size="3">100 mm</text>
+  </g>`;
+  return `<div class="print-sheet-page">${svgFrame(content, "Etiketten-Testblatt", printViewport)}</div>`;
 }
 
 export function nextEmptySlot(sheet: Sheet, current: number): number {
@@ -149,6 +190,11 @@ function escapeXml(value: string): string {
   );
 }
 
+function svgFrame(content: string, label: string, viewport: Viewport): string {
+  const { x, y, width, height } = viewport;
+  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}mm" height="${height}mm" viewBox="${x} ${y} ${width} ${height}" aria-label="${label}" class="label-sheet">${content}</svg>`;
+}
+
 export function renderSheetSvg(
   sheet: Sheet,
   format: LabelFormat,
@@ -156,6 +202,7 @@ export function renderSheetSvg(
   options: PrintOptions,
   page: number,
   selected: number,
+  viewport: Viewport = sheetViewport,
 ): string {
   const labels = labelPositions(format).map(({ x, y, width, height }, index) => {
     const artwork = artworks.get(sheet[index] ?? "");
@@ -180,7 +227,7 @@ export function renderSheetSvg(
     return `<g transform="translate(${x} ${y})" data-slot="${index}" data-filled="${Boolean(artwork)}" role="button" tabindex="${index === selected ? 0 : -1}" aria-label="Etikett ${index + 1}: ${escapeXml(name)}" aria-describedby="sheet-help" aria-pressed="${index === selected}">
       <rect class="label-hit" width="${width}" height="${height}" fill="transparent" />
       <clipPath id="${clipId}"><rect x="1" y="1" width="${width - 2}" height="${height - 2}" /></clipPath>
-      <g clip-path="url(#${clipId})" class="label-content">
+      <g class="label-content" transform="translate(${options.offsetX} ${options.offsetY})"><g clip-path="url(#${clipId})">
         ${
           artwork
             ? isCard
@@ -189,10 +236,10 @@ export function renderSheetSvg(
         ${options.names ? `<text x="${width / 2}" y="${height - inset - 0.5}" text-anchor="middle" font-family="sans-serif" font-size="${Math.min(3, (width - 2 * inset) / (name.length * 0.62))}" font-weight="600" fill="#24382e">${escapeXml(name)}</text>` : ""}`
             : `<text class="screen-only empty-slot" x="${width / 2}" y="${height / 2 + 1.5}" text-anchor="middle" font-size="5" fill="#bcc5be">+</text>`
         }
-      </g>
+      </g></g>
       <rect class="screen-only label-outline${index === selected ? " is-selected" : ""}" x="0.3" y="0.3" width="${width - 0.6}" height="${height - 0.6}" fill="none" stroke="${index === selected ? "#c75632" : "#dfe3dd"}" stroke-width="${index === selected ? "0.7" : "0.25"}" stroke-dasharray="${index === selected ? "none" : "1 1"}" />
       <text class="screen-only slot-number" x="${width - 2}" y="4" text-anchor="end" font-size="2.2" fill="${index === selected ? "#b14322" : "#a8b3ab"}">${String(index + 1).padStart(2, "0")}</text>
     </g>`;
   });
-  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="210mm" height="297mm" viewBox="0 0 210 297" aria-label="Etikettenbogen ${page + 1}" class="label-sheet"><g transform="translate(${options.offsetX} ${options.offsetY})">${labels.join("")}</g></svg>`;
+  return svgFrame(labels.join(""), `Etikettenbogen ${page + 1}`, viewport);
 }
