@@ -1,0 +1,1071 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#203d30" />
+    <title>Jakobs Pokémon-Etiketten</title>
+    <style>
+      :root {
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        color: #203d30;
+        background: #f3f1e9;
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        --ink: #203d30;
+        --muted: #68796c;
+        --line: #d7ddd1;
+        --paper: #fffef9;
+        --orange: #b84727;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-width: 320px;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button,
+      a,
+      input,
+      select,
+      summary {
+        -webkit-tap-highlight-color: transparent;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      button,
+      input,
+      select {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+      }
+      button {
+        min-height: 38px;
+        background: var(--paper);
+        color: var(--ink);
+        font-weight: 700;
+        padding: 8px 12px;
+      }
+      button:hover:not(:disabled) {
+        border-color: var(--ink);
+        background: #eef1e8;
+      }
+      :focus-visible {
+        outline: 3px solid #c75632;
+        outline-offset: 3px;
+      }
+      input,
+      select {
+        background: var(--paper);
+        color: var(--ink);
+        min-height: 40px;
+        min-width: 0;
+        padding: 8px 10px;
+        width: 100%;
+      }
+      input[type="checkbox"] {
+        width: 17px;
+        min-height: auto;
+        height: 17px;
+        accent-color: var(--ink);
+      }
+      input[type="range"] {
+        padding: 0;
+        min-height: 24px;
+        accent-color: var(--ink);
+      }
+      [hidden] {
+        display: none !important;
+      }
+      a {
+        color: inherit;
+        text-underline-offset: 3px;
+      }
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        padding: 17px 32px;
+        background: var(--ink);
+        color: #faf6e7;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .brand-mark {
+        width: 35px;
+        height: 35px;
+        display: grid;
+        place-items: center;
+        border: 1px solid #90a38c;
+        border-radius: 50%;
+        font-size: 24px;
+        color: #f5d765;
+      }
+      .brand strong {
+        display: block;
+        font-family: Georgia, Charter, serif;
+        font-size: 1.25rem;
+        font-weight: 400;
+      }
+      .brand small {
+        display: block;
+        color: #bacabd;
+        margin-top: 2px;
+        font-size: 0.65rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .app-links {
+        display: flex;
+        gap: 24px;
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+      .app-links a {
+        text-decoration: none;
+      }
+      .app-links a:hover {
+        color: #f5d765;
+      }
+      .workspace {
+        max-width: 1480px;
+        margin: auto;
+        padding: 30px 32px 20px;
+      }
+      .intro {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 25px;
+      }
+      .eyebrow {
+        margin: 0 0 7px;
+        font-size: 0.68rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        color: var(--orange);
+      }
+      h1 {
+        margin: 0;
+        font-family: Georgia, Charter, serif;
+        font-size: clamp(2rem, 3.5vw, 3.2rem);
+        line-height: 1.1;
+        font-weight: 400;
+        letter-spacing: -0.04em;
+      }
+      .intro-copy {
+        margin: 9px 0 0;
+        font-size: 0.86rem;
+        color: var(--muted);
+      }
+      .primary {
+        border-color: var(--ink);
+        background: var(--ink);
+        color: #fffbed;
+        min-height: 46px;
+        padding-inline: 24px;
+        white-space: nowrap;
+      }
+      .primary:hover:not(:disabled) {
+        background: #345b45;
+        color: white;
+      }
+      .print-icon {
+        margin-right: 9px;
+        font-size: 1.2rem;
+      }
+      .editor {
+        display: grid;
+        grid-template-columns: 360px minmax(0, 1fr);
+        gap: 28px;
+        align-items: start;
+      }
+      .tools {
+        display: grid;
+        gap: 18px;
+      }
+      .tool-panel {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 19px;
+      }
+      .section-heading {
+        display: flex;
+        gap: 9px;
+        align-items: baseline;
+        margin-bottom: 14px;
+      }
+      .step {
+        font-family: Georgia, serif;
+        color: var(--orange);
+        font-style: italic;
+        font-size: 1.15rem;
+      }
+      h2 {
+        margin: 0;
+        font-size: 0.94rem;
+        font-weight: 800;
+      }
+      .section-heading small {
+        margin-left: auto;
+        color: var(--muted);
+        font-size: 0.7rem;
+      }
+      .search-wrap {
+        position: relative;
+      }
+      .search-wrap span {
+        position: absolute;
+        left: 12px;
+        top: 8px;
+        font-size: 20px;
+      }
+      .search-wrap input {
+        padding-left: 36px;
+        background: #f5f5ef;
+        font-size: 0.83rem;
+      }
+      .catalog-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 12px 0;
+      }
+      .catalog-tabs button {
+        border-radius: 20px;
+        min-height: 29px;
+        font-size: 0.7rem;
+        padding: 5px 11px;
+        background: transparent;
+      }
+      .catalog-tabs button[aria-pressed="true"] {
+        background: var(--ink);
+        color: white;
+        border-color: var(--ink);
+      }
+      .catalog {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        align-content: start;
+        gap: 7px;
+        max-height: 344px;
+        overflow-y: auto;
+        padding: 3px;
+        margin: -3px;
+        scrollbar-width: thin;
+        scrollbar-color: #bec9ba transparent;
+      }
+      .pokemon {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1px;
+        padding: 5px 3px 7px;
+        background: #f7f7f1;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        min-width: 0;
+      }
+      .pokemon:hover:not(:disabled) {
+        background: #f2ebd5;
+        border-color: #d2b76e;
+      }
+      .pokemon[aria-pressed="true"] {
+        background: #fff0c2;
+        border-color: #d2b45e;
+      }
+      .pokemon img {
+        display: block;
+        width: 55px;
+        height: 57px;
+        object-fit: contain;
+        transition: transform 0.15s;
+      }
+      .pokemon:hover img {
+        transform: translateY(-3px);
+      }
+      .pokemon small {
+        font-size: 0.56rem;
+        font-weight: 500;
+        color: #7c877b;
+      }
+      .pokemon span {
+        font-size: 0.62rem;
+        width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .catalog.is-cards {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .pokemon.is-card img {
+        width: 70px;
+        height: 98px;
+      }
+      .pokemon.is-card small {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .catalog-empty {
+        grid-column: 1 / -1;
+        color: var(--muted);
+        font-size: 0.83rem;
+        padding: 20px 4px;
+        line-height: 1.5;
+      }
+      .catalog-help {
+        margin: 13px 0 0;
+        font-size: 0.72rem;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .upload-button {
+        width: 100%;
+        margin-top: 13px;
+        font-size: 0.74rem;
+        border-style: dashed;
+        background: transparent;
+      }
+      .field-label {
+        display: grid;
+        gap: 6px;
+        font-size: 0.74rem;
+        font-weight: 700;
+      }
+      #format {
+        font-size: 0.77rem;
+      }
+      .format-spec {
+        display: flex;
+        gap: 0;
+        padding: 13px 0;
+        margin: 4px 0 10px;
+        border-bottom: 1px solid var(--line);
+      }
+      .format-spec div {
+        flex: 1;
+      }
+      .format-spec strong {
+        display: block;
+        font-family: Georgia, serif;
+        font-weight: 400;
+        font-size: 1.45rem;
+      }
+      .format-spec span {
+        font-size: 0.65rem;
+        color: var(--muted);
+      }
+      .field-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 11px;
+      }
+      .check-field {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 0.78rem;
+        margin: 14px 0;
+      }
+      .scale-label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        margin-bottom: 3px;
+      }
+      .scale-label output {
+        font-variant-numeric: tabular-nums;
+        color: var(--muted);
+      }
+      details {
+        margin-top: 13px;
+        border-top: 1px solid var(--line);
+        padding-top: 13px;
+      }
+      summary {
+        font-size: 0.77rem;
+        cursor: pointer;
+        font-weight: 700;
+      }
+      details .field-row {
+        margin-top: 12px;
+      }
+      .fine-print {
+        color: var(--muted);
+        font-size: 0.7rem;
+        line-height: 1.5;
+        margin: 9px 0 0;
+      }
+      .custom-format {
+        display: grid;
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .custom-format button {
+        font-size: 0.75rem;
+      }
+      .error {
+        color: #a23220;
+        font-size: 0.76rem;
+        line-height: 1.45;
+        margin: 0;
+      }
+      .preview {
+        min-width: 0;
+        background: #e3e8de;
+        border-radius: 10px;
+        border: 1px solid #d3dbce;
+        overflow: hidden;
+      }
+      .preview-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 9px;
+        padding: 13px 18px;
+        border-bottom: 1px solid #cfd8ca;
+      }
+      .page-nav {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+      .page-nav button {
+        width: 30px;
+        min-height: 30px;
+        padding: 2px;
+        background: transparent;
+        border-color: #bdc9b9;
+      }
+      .page-nav span {
+        font-size: 0.78rem;
+        min-width: 85px;
+        text-align: center;
+        font-weight: 800;
+      }
+      .text-button {
+        border: 0;
+        background: transparent;
+        min-height: 30px;
+        padding: 3px 5px;
+        font-size: 0.73rem;
+      }
+      .preview-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .sheet-surround {
+        padding: 20px clamp(14px, 5vw, 70px) 25px;
+        background-image: radial-gradient(#c6d0bf 0.7px, transparent 0.7px);
+        background-size: 9px 9px;
+      }
+      .sheet-caption {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        max-width: 530px;
+        margin: 0 auto 11px;
+        font-size: 0.65rem;
+        color: #63725f;
+      }
+      .sheet-caption strong {
+        font-weight: 700;
+      }
+      .sheet-page {
+        display: none;
+        width: 100%;
+        max-width: 530px;
+        margin: 0 auto;
+        background: white;
+        box-shadow:
+          0 3px 5px #203d3010,
+          0 15px 28px #203d3020;
+      }
+      .sheet-page.is-current {
+        display: block;
+      }
+      .label-sheet {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 210 / 297;
+        overflow: hidden;
+      }
+      .label-sheet [data-slot] {
+        cursor: pointer;
+        outline: none;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .label-sheet [data-filled="true"] {
+        cursor: grab;
+        touch-action: none;
+      }
+      .label-sheet .is-drag-source .label-content {
+        opacity: 0.25;
+      }
+      .label-sheet .is-drop-target .label-outline {
+        stroke: #203d30;
+        stroke-width: 1;
+        stroke-dasharray: none;
+      }
+      .label-sheet .is-drop-target .label-hit {
+        fill: #e3ecd9;
+      }
+      .drag-preview {
+        position: fixed;
+        z-index: 10;
+        width: 85px;
+        height: 85px;
+        object-fit: contain;
+        pointer-events: none;
+        transform: translate(-50%, -50%) rotate(-5deg);
+        filter: drop-shadow(0 5px 4px #203d3040);
+      }
+      body.is-label-dragging,
+      body.is-label-dragging * {
+        cursor: grabbing !important;
+      }
+      #print-sheets {
+        display: none;
+      }
+      .label-sheet [data-slot]:hover .label-hit {
+        fill: #f2efd766;
+      }
+      .label-sheet [data-slot]:focus-visible .label-outline {
+        stroke: #b14322;
+        stroke-width: 1;
+        stroke-dasharray: none;
+      }
+      .label-content,
+      .label-outline,
+      .slot-number {
+        pointer-events: none;
+      }
+      .selection-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 12px 18px;
+        border-top: 1px solid #cfd8ca;
+      }
+      .selection-bar p {
+        margin: 0;
+        font-size: 0.74rem;
+      }
+      .selection-bar strong {
+        color: var(--orange);
+      }
+      .selection-actions {
+        display: flex;
+        gap: 6px;
+      }
+      .selection-actions button {
+        min-height: 31px;
+        padding: 6px 9px;
+        font-size: 0.7rem;
+      }
+      .print-note {
+        display: flex;
+        gap: 12px;
+        margin-top: 16px;
+        padding: 13px 16px;
+        border: 1px solid #d7d4c2;
+        border-radius: 6px;
+        background: #eeecdf;
+        font-size: 0.75rem;
+        line-height: 1.6;
+        color: #626b5c;
+      }
+      .print-note strong {
+        color: var(--ink);
+      }
+      .note-mark {
+        font-family: Georgia, serif;
+        font-size: 1.5rem;
+        line-height: 1.3;
+      }
+      .print-note p {
+        margin: 0;
+      }
+      .status {
+        min-height: 20px;
+        margin: 10px 0 0;
+        color: var(--orange);
+        font-size: 0.8rem;
+      }
+      footer {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px 20px;
+        padding: 18px 0 0;
+        margin-top: 15px;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.65rem;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      @media (min-width: 1350px) {
+        .editor {
+          grid-template-columns: 390px minmax(0, 1fr);
+          gap: 36px;
+        }
+        .catalog {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+        .pokemon img {
+          width: 63px;
+          height: 63px;
+        }
+      }
+      @media (max-width: 900px) {
+        .workspace {
+          padding: 24px 18px;
+        }
+        .topbar {
+          padding: 16px 20px;
+        }
+        .editor {
+          grid-template-columns: 310px minmax(0, 1fr);
+          gap: 18px;
+        }
+        .tool-panel {
+          padding: 15px;
+        }
+        .catalog {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          max-height: 310px;
+        }
+        .sheet-surround {
+          padding: 15px 12px 20px;
+        }
+        .intro {
+          align-items: center;
+        }
+        .selection-actions {
+          width: 100%;
+        }
+      }
+      @media (max-width: 680px) {
+        .editor {
+          grid-template-columns: 1fr;
+        }
+        .topbar {
+          padding: 13px 16px;
+        }
+        .brand strong {
+          font-size: 1.08rem;
+        }
+        .app-links {
+          gap: 12px;
+          font-size: 0.68rem;
+        }
+        .brand-mark {
+          display: none;
+        }
+        .workspace {
+          padding: 22px 14px;
+        }
+        .intro {
+          flex-wrap: wrap;
+          gap: 16px;
+          margin-bottom: 20px;
+        }
+        .intro-copy {
+          font-size: 0.8rem;
+        }
+        .primary {
+          width: 100%;
+        }
+        .catalog {
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          max-height: 210px;
+        }
+        .pokemon img {
+          width: 47px;
+          height: 49px;
+        }
+        .catalog-help {
+          margin-top: 10px;
+        }
+        .tools {
+          gap: 12px;
+        }
+        .sheet-surround {
+          padding: 16px 20px 22px;
+        }
+        .selection-actions {
+          width: auto;
+        }
+        .app-links a:last-child {
+          display: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
+      @page {
+        size: A4 portrait;
+        margin: 3mm;
+      }
+      @media print {
+        html,
+        body {
+          width: auto;
+          height: auto;
+          min-height: 0;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: white;
+          min-width: 0;
+          line-height: 0;
+        }
+        body > :not(#print-sheets),
+        #print-sheets .screen-only {
+          display: none !important;
+        }
+        #print-sheets {
+          display: block;
+          width: 204mm;
+          margin: 0;
+          padding: 0;
+        }
+        .print-sheet-page {
+          display: block;
+          position: relative;
+          width: 204mm;
+          /* A 0.5 mm allowance avoids rounding overflow in Safari pagination.
+             Only the blank outer edge is clipped; the SVG stays exactly A4. */
+          height: 290.5mm;
+          margin: 0;
+          padding: 0;
+          overflow: hidden;
+          page-break-inside: avoid;
+          break-inside: avoid;
+          page-break-before: always;
+          break-before: page;
+        }
+        .print-sheet-page:first-child {
+          page-break-before: auto;
+          break-before: auto;
+        }
+        #print-sheets .label-sheet {
+          position: absolute;
+          /* Compensate for @page margins without scaling label coordinates. */
+          top: -3mm;
+          left: -3mm;
+          width: 210mm;
+          height: 297mm;
+          aspect-ratio: auto;
+        }
+        .label-hit {
+          fill: transparent !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">✳</span>
+        <div>
+          <strong>Jakobs kleine Werkstatt</strong><small>Zum Spielen. Zum Selbermachen.</small>
+        </div>
+      </div>
+      <nav class="app-links" aria-label="Weitere Apps">
+        <a href="../index.html">← Labyrinth</a><a href="../dice/index.html">Würfelfabrik ↗</a>
+      </nav>
+    </header>
+    <main class="workspace">
+      <section class="intro" aria-labelledby="title">
+        <div>
+          <p class="eyebrow">Sammeln, kleben, Freude machen</p>
+          <h1 id="title">Pokémon zum Aufkleben.</h1>
+          <p class="intro-copy">Deine Lieblinge. Dein Etikettenbogen. Direkt aus dem Drucker.</p>
+        </div>
+        <button id="print" class="primary" type="button">
+          <span class="print-icon" aria-hidden="true">↗</span
+          ><span id="print-label">Bogen drucken</span>
+        </button>
+      </section>
+      <div class="editor">
+        <aside class="tools" aria-label="Etiketten gestalten">
+          <section class="tool-panel" aria-labelledby="pokemon-heading">
+            <div class="section-heading">
+              <span class="step" aria-hidden="true">01</span>
+              <h2 id="pokemon-heading">Pokémon aussuchen</h2>
+              <small id="catalog-count">151 Motive</small>
+            </div>
+            <label class="search-wrap"
+              ><span aria-hidden="true">⌕</span><span class="sr-only">Pokémon suchen</span
+              ><input
+                id="search"
+                type="search"
+                placeholder="Name oder Pokédex-Nummer …"
+                autocomplete="off"
+            /></label>
+            <div class="catalog-tabs" aria-label="Bilder filtern">
+              <button type="button" data-filter="all" aria-pressed="false">Alle 151</button
+              ><button type="button" data-filter="favorites" aria-pressed="true">Lieblinge</button
+              ><button type="button" data-filter="cards" aria-pressed="false">Sammelkarten</button
+              ><button type="button" data-filter="uploads" aria-pressed="false">
+                Eigene Bilder
+              </button>
+            </div>
+            <div id="catalog" class="catalog" aria-label="Pokémon-Auswahl"></div>
+            <p id="card-help" class="catalog-help" hidden>
+              44 deutsche Illustrations-, ex- und Goldkarten. Auf breiten Etiketten werden sie
+              vollständig um 90° gedreht gedruckt. Quelle:
+              <a href="https://tcgdex.dev/de" target="_blank" rel="noopener noreferrer"
+                >TCGdex (Community)</a
+              >. Der echte Glitzereffekt einer Folienkarte lässt sich auf Papier nicht mitdrucken.
+            </p>
+            <p id="sheet-help" class="catalog-help">
+              Motiv wählen zum Einsetzen. Auf dem Bogen: klicken zum Löschen, ziehen zum Verschieben
+              oder Tauschen. Mit Umschalt + Pfeiltasten geht das auch per Tastatur.
+            </p>
+            <button id="upload" type="button" class="upload-button">
+              ＋ Eigene Bilder hochladen</button
+            ><input
+              id="upload-files"
+              class="sr-only"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              multiple
+              tabindex="-1"
+              aria-label="Eigene Bilder auswählen"
+            />
+          </section>
+          <section class="tool-panel" aria-labelledby="format-heading">
+            <div class="section-heading">
+              <span class="step" aria-hidden="true">02</span>
+              <h2 id="format-heading">Papier &amp; Druck</h2>
+            </div>
+            <label class="field-label">Etikettenformat<select id="format"></select></label>
+            <form id="custom-format" class="custom-format" hidden>
+              <div class="field-row">
+                <label class="field-label"
+                  >Spalten<input
+                    name="columns"
+                    type="number"
+                    min="1"
+                    max="21"
+                    step="1"
+                    value="3"
+                    required /></label
+                ><label class="field-label"
+                  >Reihen<input
+                    name="rows"
+                    type="number"
+                    min="1"
+                    max="29"
+                    step="1"
+                    value="8"
+                    required
+                /></label>
+              </div>
+              <div class="field-row">
+                <label class="field-label"
+                  >Breite (mm)<input
+                    name="width"
+                    type="number"
+                    min="10"
+                    max="210"
+                    step="0.001"
+                    value="70"
+                    required /></label
+                ><label class="field-label"
+                  >Höhe (mm)<input
+                    name="height"
+                    type="number"
+                    min="10"
+                    max="297"
+                    step="0.001"
+                    value="37.125"
+                    required
+                /></label>
+              </div>
+              <div class="field-row">
+                <label class="field-label"
+                  >Rand links (mm)<input
+                    name="marginX"
+                    type="number"
+                    min="0"
+                    max="200"
+                    step="0.001"
+                    value="0"
+                    required /></label
+                ><label class="field-label"
+                  >Rand oben (mm)<input
+                    name="marginY"
+                    type="number"
+                    min="0"
+                    max="287"
+                    step="0.001"
+                    value="0"
+                    required
+                /></label>
+              </div>
+              <div class="field-row">
+                <label class="field-label"
+                  >Spaltenabstand (mm)<input
+                    name="gapX"
+                    type="number"
+                    min="0"
+                    max="200"
+                    step="0.001"
+                    value="0"
+                    required /></label
+                ><label class="field-label"
+                  >Reihenabstand (mm)<input
+                    name="gapY"
+                    type="number"
+                    min="0"
+                    max="287"
+                    step="0.001"
+                    value="0"
+                    required
+                /></label>
+              </div>
+              <button type="submit">Format anwenden</button>
+              <p id="format-error" class="error" role="alert"></p>
+            </form>
+            <div class="format-spec">
+              <div><strong id="spec-grid">3 × 8</strong><span>Spalten × Reihen</span></div>
+              <div><strong id="spec-count">24</strong><span>Etiketten pro Bogen</span></div>
+              <div><strong>A4</strong><span>210 × 297 mm</span></div>
+            </div>
+            <label class="check-field"
+              ><input id="show-names" type="checkbox" />Pokémon-Namen mitdrucken</label
+            >
+            <label class="scale-label" for="image-scale"
+              ><span>Motivgröße</span><output id="scale-value">100 %</output></label
+            ><input id="image-scale" type="range" min="40" max="100" step="5" value="100" />
+            <details>
+              <summary>Druckversatz fein einstellen</summary>
+              <div class="field-row">
+                <label class="field-label"
+                  >Nach rechts (mm)<input
+                    id="offset-x"
+                    type="number"
+                    min="-10"
+                    max="10"
+                    step="0.1"
+                    value="0" /></label
+                ><label class="field-label"
+                  >Nach unten (mm)<input
+                    id="offset-y"
+                    type="number"
+                    min="-10"
+                    max="10"
+                    step="0.1"
+                    value="0"
+                /></label>
+              </div>
+              <p class="fine-print">
+                Negative Werte verschieben nach links bzw. oben. Zuerst auf normalem Papier testen;
+                Motive am Blattrand können bei zu großem Versatz abgeschnitten werden.
+              </p>
+            </details>
+          </section>
+        </aside>
+        <section aria-label="Druckvorschau">
+          <div class="preview">
+            <div class="preview-toolbar">
+              <div class="page-nav">
+                <button id="previous-page" type="button" aria-label="Vorheriger Bogen">←</button
+                ><span id="page-label">Bogen 1 / 1</span
+                ><button id="next-page" type="button" aria-label="Nächster Bogen">→</button>
+              </div>
+              <div class="preview-actions">
+                <button id="undo" class="text-button" type="button" disabled>↶ Rückgängig</button
+                ><button id="add-page" class="text-button" type="button">＋ Bogen</button>
+              </div>
+            </div>
+            <div class="sheet-surround">
+              <div class="sheet-caption">
+                <strong id="sheet-caption">70 × 37,125 mm · ohne Zwischenräume</strong
+                ><span id="filled-count">0 / 24 belegt</span>
+              </div>
+              <div id="sheets"></div>
+            </div>
+            <div class="selection-bar">
+              <p>
+                <strong id="selected-slot">Etikett 1</strong><span id="selected-name"> · frei</span>
+              </p>
+              <div class="selection-actions">
+                <button id="clear-slot" type="button">Leeren</button
+                ><button id="fill-sheet" type="button">Freie füllen</button
+                ><button id="clear-sheet" type="button">Bogen leeren</button>
+              </div>
+            </div>
+          </div>
+          <div class="print-note">
+            <span class="note-mark" aria-hidden="true">i</span>
+            <p>
+              <strong>So passt es auf die Etiketten:</strong> A4 · Hochformat · 100 % / tatsächliche
+              Größe · einseitig · Kopf- und Fußzeilen aus. Die Druckvorlage berücksichtigt 3 mm
+              Druckrand; die Etikettenpositionen bleiben maßstabsgetreu. Hilfslinien werden nicht
+              gedruckt. PDF-Speichern geht im Druckdialog.
+            </p>
+          </div>
+          <p id="status" class="status" role="status" aria-live="polite"></p>
+        </section>
+      </div>
+      <footer>
+        <span>151 Pokémon. Unendlich viele Lieblingsplätze.</span
+        ><span
+          >Bilder &amp; Namen:
+          <a href="https://github.com/PokeAPI/sprites" target="_blank" rel="noopener noreferrer"
+            >PokeAPI</a
+          >
+          · Karten:
+          <a href="https://tcgdex.dev/de" target="_blank" rel="noopener noreferrer">TCGdex</a> ·
+          Pokémon © Nintendo / Creatures / GAME FREAK</span
+        >
+      </footer>
+    </main>
+    <div id="print-sheets" aria-hidden="true"></div>
+    <script type="module" src="/pokemon/main.ts"></script>
+  </body>
+</html>

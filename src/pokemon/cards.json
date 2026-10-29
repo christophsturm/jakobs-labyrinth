@@ -1,0 +1,354 @@
+[
+  {
+    "id": "sv03.5-166",
+    "name": "Bisasam",
+    "number": "166",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/166/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-166"
+  },
+  {
+    "id": "sv03.5-167",
+    "name": "Bisaknosp",
+    "number": "167",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/167/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-167"
+  },
+  {
+    "id": "sv03.5-168",
+    "name": "Glumanda",
+    "number": "168",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/168/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-168"
+  },
+  {
+    "id": "sv03.5-169",
+    "name": "Glutexo",
+    "number": "169",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/169/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-169"
+  },
+  {
+    "id": "sv03.5-170",
+    "name": "Schiggy",
+    "number": "170",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/170/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-170"
+  },
+  {
+    "id": "sv03.5-171",
+    "name": "Schillok",
+    "number": "171",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/171/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-171"
+  },
+  {
+    "id": "sv03.5-172",
+    "name": "Raupy",
+    "number": "172",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/172/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-172"
+  },
+  {
+    "id": "sv03.5-173",
+    "name": "Pikachu",
+    "number": "173",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/173/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-173"
+  },
+  {
+    "id": "sv03.5-174",
+    "name": "Nidoking",
+    "number": "174",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/174/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-174"
+  },
+  {
+    "id": "sv03.5-175",
+    "name": "Enton",
+    "number": "175",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/175/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-175"
+  },
+  {
+    "id": "sv03.5-176",
+    "name": "Quaputzi",
+    "number": "176",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/176/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-176"
+  },
+  {
+    "id": "sv03.5-177",
+    "name": "Maschock",
+    "number": "177",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/177/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-177"
+  },
+  {
+    "id": "sv03.5-178",
+    "name": "Tangela",
+    "number": "178",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/178/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-178"
+  },
+  {
+    "id": "sv03.5-179",
+    "name": "Pantimos",
+    "number": "179",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/179/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-179"
+  },
+  {
+    "id": "sv03.5-180",
+    "name": "Amonitas",
+    "number": "180",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/180/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-180"
+  },
+  {
+    "id": "sv03.5-181",
+    "name": "Dragonir",
+    "number": "181",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/181/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-181"
+  },
+  {
+    "id": "sv03.5-182",
+    "name": "Bisaflor-ex",
+    "number": "182",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/182/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-182"
+  },
+  {
+    "id": "sv03.5-183",
+    "name": "Glurak-ex",
+    "number": "183",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/183/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-183"
+  },
+  {
+    "id": "sv03.5-184",
+    "name": "Turtok-ex",
+    "number": "184",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/184/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-184"
+  },
+  {
+    "id": "sv03.5-185",
+    "name": "Arbok-ex",
+    "number": "185",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/185/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-185"
+  },
+  {
+    "id": "sv03.5-186",
+    "name": "Vulnona-ex",
+    "number": "186",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/186/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-186"
+  },
+  {
+    "id": "sv03.5-187",
+    "name": "Knuddeluff-ex",
+    "number": "187",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/187/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-187"
+  },
+  {
+    "id": "sv03.5-188",
+    "name": "Simsala-ex",
+    "number": "188",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/188/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-188"
+  },
+  {
+    "id": "sv03.5-189",
+    "name": "Geowaz-ex",
+    "number": "189",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/189/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-189"
+  },
+  {
+    "id": "sv03.5-190",
+    "name": "Kangama-ex",
+    "number": "190",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/190/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-190"
+  },
+  {
+    "id": "sv03.5-191",
+    "name": "Rossana-ex",
+    "number": "191",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/191/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-191"
+  },
+  {
+    "id": "sv03.5-192",
+    "name": "Zapdos-ex",
+    "number": "192",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/192/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-192"
+  },
+  {
+    "id": "sv03.5-193",
+    "name": "Mew-ex",
+    "number": "193",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/193/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-193"
+  },
+  {
+    "id": "sv03.5-198",
+    "name": "Bisaflor-ex",
+    "number": "198",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/198/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-198"
+  },
+  {
+    "id": "sv03.5-199",
+    "name": "Glurak-ex",
+    "number": "199",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/199/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-199"
+  },
+  {
+    "id": "sv03.5-200",
+    "name": "Turtok-ex",
+    "number": "200",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/200/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-200"
+  },
+  {
+    "id": "sv03.5-201",
+    "name": "Simsala-ex",
+    "number": "201",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/201/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-201"
+  },
+  {
+    "id": "sv03.5-202",
+    "name": "Zapdos-ex",
+    "number": "202",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/202/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-202"
+  },
+  {
+    "id": "sv03.5-205",
+    "name": "Mew-ex",
+    "number": "205",
+    "set": "151",
+    "source": "https://assets.tcgdex.net/de/sv/sv03.5/205/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv03.5-205"
+  },
+  {
+    "id": "sv08.5-144",
+    "name": "Folipurba-ex",
+    "number": "144",
+    "set": "Prismatische Entwicklungen",
+    "source": "https://assets.tcgdex.net/de/sv/sv08.5/144/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv08.5-144"
+  },
+  {
+    "id": "sv08.5-146",
+    "name": "Flamara-ex",
+    "number": "146",
+    "set": "Prismatische Entwicklungen",
+    "source": "https://assets.tcgdex.net/de/sv/sv08.5/146/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv08.5-146"
+  },
+  {
+    "id": "sv08.5-149",
+    "name": "Aquana-ex",
+    "number": "149",
+    "set": "Prismatische Entwicklungen",
+    "source": "https://assets.tcgdex.net/de/sv/sv08.5/149/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv08.5-149"
+  },
+  {
+    "id": "sv08.5-150",
+    "name": "Glaziola-ex",
+    "number": "150",
+    "set": "Prismatische Entwicklungen",
+    "source": "https://assets.tcgdex.net/de/sv/sv08.5/150/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv08.5-150"
+  },
+  {
+    "id": "sv08.5-153",
+    "name": "Blitza-ex",
+    "number": "153",
+    "set": "Prismatische Entwicklungen",
+    "source": "https://assets.tcgdex.net/de/sv/sv08.5/153/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv08.5-153"
+  },
+  {
+    "id": "sv08.5-155",
+    "name": "Psiana-ex",
+    "number": "155",
+    "set": "Prismatische Entwicklungen",
+    "source": "https://assets.tcgdex.net/de/sv/sv08.5/155/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv08.5-155"
+  },
+  {
+    "id": "sv08.5-156",
+    "name": "Feelinara-ex",
+    "number": "156",
+    "set": "Prismatische Entwicklungen",
+    "source": "https://assets.tcgdex.net/de/sv/sv08.5/156/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv08.5-156"
+  },
+  {
+    "id": "sv08.5-161",
+    "name": "Nachtara-ex",
+    "number": "161",
+    "set": "Prismatische Entwicklungen",
+    "source": "https://assets.tcgdex.net/de/sv/sv08.5/161/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv08.5-161"
+  },
+  {
+    "id": "sv08.5-167",
+    "name": "Evoli-ex",
+    "number": "167",
+    "set": "Prismatische Entwicklungen",
+    "source": "https://assets.tcgdex.net/de/sv/sv08.5/167/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv08.5-167"
+  },
+  {
+    "id": "sv08.5-179",
+    "name": "Pikachu-ex",
+    "number": "179",
+    "set": "Prismatische Entwicklungen",
+    "source": "https://assets.tcgdex.net/de/sv/sv08.5/179/high.webp",
+    "apiSource": "https://api.tcgdex.net/v2/de/cards/sv08.5-179"
+  }
+]

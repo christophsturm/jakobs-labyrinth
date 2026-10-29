@@ -98,6 +98,7 @@ export default defineConfig({
       input: {
         printer: fileURLToPath(new URL("./src/index.html", import.meta.url)),
         dice: fileURLToPath(new URL("./src/dice/index.html", import.meta.url)),
+        pokemon: fileURLToPath(new URL("./src/pokemon/index.html", import.meta.url)),
       },
     },
   },
