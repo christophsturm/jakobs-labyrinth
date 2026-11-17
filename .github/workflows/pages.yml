@@ -39,6 +39,12 @@ jobs:
       - name: Check and build
         run: pnpm check
 
+      - name: Verify public pages only
+        run: |
+          test ! -e dist/pokemon
+          test "$(find dist -type f | wc -l)" -eq 2
+          ! grep -q 'href="./pokemon/' dist/index.html
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:

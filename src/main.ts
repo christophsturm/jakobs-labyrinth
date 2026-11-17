@@ -2451,7 +2451,8 @@ function bindApp(): void {
     difficultyLabel.textContent = labels.difficultyField;
     mazeLetterAmountLabel.textContent = labels.mazeLetterAmountField;
     diceToolLinkLabel.textContent = labels.diceToolLink;
-    byId<HTMLSpanElement>("pokemon-tool-link-label").textContent = labels.pokemonToolLink;
+    const pokemonToolLink = document.getElementById("pokemon-tool-link-label");
+    if (pokemonToolLink) pokemonToolLink.textContent = labels.pokemonToolLink;
     githubLinkLabel.textContent = labels.githubLink;
     addPuzzleButton.textContent = labels.addPuzzle;
     printButton.textContent = labels.print;

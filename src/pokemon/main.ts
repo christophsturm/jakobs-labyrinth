@@ -87,6 +87,8 @@ function start(): void {
   const offsetXInput = byId<HTMLInputElement>("offset-x");
   const offsetYInput = byId<HTMLInputElement>("offset-y");
   const fileInput = byId<HTMLInputElement>("upload-files");
+  const uploadFitInput = byId<HTMLSelectElement>("upload-fit");
+  const uploadRotationInput = byId<HTMLSelectElement>("upload-rotation");
   const printSheets = byId<HTMLDivElement>("print-sheets");
   let drag: LabelDrag | null = null;
   let suppressClick = false;
@@ -240,6 +242,7 @@ function start(): void {
     byId("catalog-count").textContent =
       `${entries.length} ${entries.length === 1 ? "Motiv" : "Motive"}`;
     byId("card-help").hidden = filter !== "cards";
+    byId("upload-settings").hidden = filter !== "uploads" || uploadSequence === 0;
     document
       .querySelectorAll<HTMLButtonElement>("[data-filter]")
       .forEach((button) =>
@@ -589,6 +592,32 @@ function start(): void {
     });
   }
   byId("upload").addEventListener("click", () => fileInput.click());
+  uploadFitInput.addEventListener("change", () => {
+    printOptions.uploadFit = uploadFitInput.value === "cover" ? "cover" : "contain";
+    renderSheets();
+    announce(
+      printOptions.uploadFit === "cover"
+        ? "Eigene Fotos füllen die Etikettenfläche; überstehende Bildränder werden beschnitten."
+        : "Eigene Fotos werden vollständig und so groß wie möglich eingepasst.",
+    );
+  });
+  uploadRotationInput.addEventListener("change", () => {
+    if (uploadRotationInput.value === "auto") {
+      printOptions.uploadRotation = "auto";
+      renderSheets();
+      announce("Jedes eigene Foto wird automatisch für die größtmögliche Darstellung gedreht.");
+      return;
+    }
+    const rotation = Number(uploadRotationInput.value);
+    if (rotation !== 0 && rotation !== 90 && rotation !== 180 && rotation !== 270) return;
+    printOptions.uploadRotation = rotation;
+    renderSheets();
+    announce(
+      rotation === 0
+        ? "Eigene Fotos in Originalausrichtung."
+        : `Eigene Fotos um ${rotation}° gedreht.`,
+    );
+  });
   fileInput.addEventListener("change", async () => {
     const files = [...(fileInput.files ?? [])];
     fileInput.value = "";
@@ -604,9 +633,15 @@ function start(): void {
       }
       try {
         const image = await readImage(file);
-        await decodeImage(image);
+        const decoded = await decodeImage(image);
         const id = `upload-${++uploadSequence}`;
-        artworks.set(id, { id, name: file.name.replace(/\.[^.]+$/, "").slice(0, 60), image });
+        artworks.set(id, {
+          id,
+          name: file.name.replace(/\.[^.]+$/, "").slice(0, 60),
+          image,
+          kind: "upload",
+          aspectRatio: decoded.naturalWidth / decoded.naturalHeight,
+        });
         added++;
       } catch {
         rejected.push(file.name);
@@ -674,10 +709,11 @@ function readImage(file: File): Promise<string> {
   });
 }
 
-async function decodeImage(source: string): Promise<void> {
+async function decodeImage(source: string): Promise<HTMLImageElement> {
   const image = new Image();
   image.src = source;
   await image.decode();
+  return image;
 }
 
 if (typeof document !== "undefined") start();

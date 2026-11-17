@@ -177,6 +177,91 @@ describe("SVG print output", () => {
     expect(svg).toContain(">Pika &lt;&amp;&quot;chu</text>");
     expect(svg).not.toContain('>Pika <&"chu');
   });
+  test("fits uploads into the rectangular label area instead of a Pokémon-sized square", () => {
+    const uploads = new Map<string, Artwork>([
+      [
+        "photo",
+        { id: "photo", name: "Photo", image: "data:image/png;base64,cGhvdG8=", kind: "upload" },
+      ],
+    ]);
+    const options = { names: false, scale: 100, offsetX: 0, offsetY: 0 };
+    const svg = renderSheetSvg(["photo"], defaultFormat, uploads, options, 0, 0);
+    expect(svg).toContain(
+      'x="-31" y="-14.5625" width="62" height="29.125" preserveAspectRatio="xMidYMid meet"',
+    );
+    expect(svg).toContain("translate(35 18.5625) rotate(0)");
+    const portrait = { ...defaultFormat, columns: 1, rows: 1, width: 37.125, height: 70 };
+    expect(renderSheetSvg(["photo"], portrait, uploads, options, 0, 0)).toContain(
+      'width="29.125" height="62"',
+    );
+  });
+  test("crops and rotates uploads consistently in preview and print, respecting scale and names", () => {
+    const uploads = new Map<string, Artwork>([
+      [
+        "photo",
+        { id: "photo", name: "Photo", image: "data:image/png;base64,cGhvdG8=", kind: "upload" },
+      ],
+    ]);
+    const options = {
+      names: true,
+      scale: 50,
+      offsetX: 0,
+      offsetY: 0,
+      uploadFit: "cover" as const,
+      uploadRotation: 90 as const,
+    };
+    const svg = renderSheetSvg(["photo"], defaultFormat, uploads, options, 0, 0);
+    expect(svg).toContain("translate(35 16.0625) rotate(90)");
+    expect(svg).toContain('width="12.0625" height="31" preserveAspectRatio="xMidYMid slice"');
+    const printed = renderPrintSheets([["photo"]], defaultFormat, uploads, options);
+    expect(printed.match(/<image [^>]+>/)?.[0]).toBe(svg.match(/<image [^>]+>/)?.[0]);
+    expect(printed).toContain("translate(35 16.0625) rotate(90)");
+  });
+  test("photo settings leave Pokémon and trading cards unchanged", () => {
+    const mixedArtworks = new Map(artworks);
+    mixedArtworks.set("card", {
+      id: "card",
+      name: "Card",
+      image: "data:image/webp;base64,Y2FyZA==",
+      kind: "card",
+    });
+    const options = { names: false, scale: 100, offsetX: 0, offsetY: 0 };
+    const original = renderSheetSvg(["25", "card"], defaultFormat, mixedArtworks, options, 0, 0);
+    expect(
+      renderSheetSvg(
+        ["25", "card"],
+        defaultFormat,
+        mixedArtworks,
+        { ...options, uploadFit: "cover", uploadRotation: 270 },
+        0,
+        0,
+      ),
+    ).toBe(original);
+  });
+  test.each([
+    { aspectRatio: 2 / 3, width: 70, height: 37.125, rotation: 90 },
+    { aspectRatio: 3 / 2, width: 70, height: 37.125, rotation: 0 },
+    { aspectRatio: 3 / 2, width: 37.125, height: 70, rotation: 90 },
+    { aspectRatio: 2 / 3, width: 37.125, height: 70, rotation: 0 },
+    { aspectRatio: 1, width: 70, height: 37.125, rotation: 0 },
+  ])(
+    "automatically chooses the largest whole-photo orientation: %j",
+    ({ aspectRatio, width, height, rotation }) => {
+      const uploads = new Map<string, Artwork>([
+        ["photo", { id: "photo", name: "Photo", image: "photo.png", kind: "upload", aspectRatio }],
+      ]);
+      const format = { ...defaultFormat, columns: 1, rows: 1, width, height };
+      const options = { names: false, scale: 100, offsetX: 0, offsetY: 0 };
+      const expected = `translate(${width / 2} ${height / 2}) rotate(${rotation})`;
+      expect(renderSheetSvg(["photo"], format, uploads, options, 0, 0)).toContain(expected);
+      expect(
+        renderPrintSheets([["photo"]], format, uploads, { ...options, uploadRotation: "auto" }),
+      ).toContain(expected);
+      expect(
+        renderSheetSvg(["photo"], format, uploads, { ...options, uploadRotation: 0 }, 0, 0),
+      ).toContain(`translate(${width / 2} ${height / 2}) rotate(0)`);
+    },
+  );
   test("prints only nonempty sheets even with empty pages before and after", () => {
     const empty = emptySheet(defaultFormat);
     const options = { names: false, scale: 100, offsetX: 0, offsetY: 0 };

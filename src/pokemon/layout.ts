@@ -39,12 +39,20 @@ export type Artwork = {
   id: string;
   name: string;
   image: string;
-  kind?: "card";
+  kind?: "card" | "upload";
+  aspectRatio?: number;
   caption?: string;
   aliases?: readonly string[];
 };
 export type Sheet = (string | null)[];
-export type PrintOptions = { names: boolean; scale: number; offsetX: number; offsetY: number };
+export type PrintOptions = {
+  names: boolean;
+  scale: number;
+  offsetX: number;
+  offsetY: number;
+  uploadFit?: "contain" | "cover";
+  uploadRotation?: "auto" | 0 | 90 | 180 | 270;
+};
 
 export function fitLabelsToA4(
   grid: Pick<LabelFormat, "columns" | "rows" | "marginX" | "marginY" | "gapX" | "gapY">,
@@ -208,6 +216,7 @@ export function renderSheetSvg(
     const artwork = artworks.get(sheet[index] ?? "");
     const inset = Math.min(4, width / 8, height / 8);
     const isCard = artwork?.kind === "card";
+    const isUpload = artwork?.kind === "upload";
     const nameHeight = options.names && artwork && !isCard ? 5 : 0;
     const imageSize =
       (Math.min(width - 2 * inset, height - 2 * inset - nameHeight) * options.scale) / 100;
@@ -224,16 +233,37 @@ export function renderSheetSvg(
         options.scale) /
       100;
     const cardHeight = (cardWidth * 88) / 63;
+    const photoWidth = ((width - 2 * inset) * options.scale) / 100;
+    const photoHeight = ((height - 2 * inset - nameHeight) * options.scale) / 100;
+    const aspectRatio = artwork?.aspectRatio ?? 1;
+    const automaticRotation =
+      Number.isFinite(aspectRatio) &&
+      aspectRatio > 0 &&
+      Math.min(photoWidth, photoHeight / aspectRatio) >
+        Math.min(photoWidth / aspectRatio, photoHeight)
+        ? 90
+        : 0;
+    const rotation =
+      options.uploadRotation === undefined || options.uploadRotation === "auto"
+        ? automaticRotation
+        : options.uploadRotation;
+    const sideways = rotation === 90 || rotation === 270;
+    const uploadWidth = sideways ? photoHeight : photoWidth;
+    const uploadHeight = sideways ? photoWidth : photoHeight;
+    const imageMarkup = !artwork
+      ? ""
+      : isCard
+        ? `<g transform="translate(${width / 2} ${height / 2}) rotate(${rotateCard ? 90 : 0})"><image href="${escapeXml(artwork.image)}" x="${-cardWidth / 2}" y="${-cardHeight / 2}" width="${cardWidth}" height="${cardHeight}" preserveAspectRatio="xMidYMid meet" /></g>`
+        : isUpload
+          ? `<g transform="translate(${width / 2} ${(height - nameHeight) / 2}) rotate(${rotation})"><image href="${escapeXml(artwork.image)}" x="${-uploadWidth / 2}" y="${-uploadHeight / 2}" width="${uploadWidth}" height="${uploadHeight}" preserveAspectRatio="xMidYMid ${options.uploadFit === "cover" ? "slice" : "meet"}" /></g>`
+          : `<image href="${escapeXml(artwork.image)}" x="${imageX}" y="${imageY}" width="${imageSize}" height="${imageSize}" preserveAspectRatio="xMidYMid meet" />`;
     return `<g transform="translate(${x} ${y})" data-slot="${index}" data-filled="${Boolean(artwork)}" role="button" tabindex="${index === selected ? 0 : -1}" aria-label="Etikett ${index + 1}: ${escapeXml(name)}" aria-describedby="sheet-help" aria-pressed="${index === selected}">
       <rect class="label-hit" width="${width}" height="${height}" fill="transparent" />
       <clipPath id="${clipId}"><rect x="1" y="1" width="${width - 2}" height="${height - 2}" /></clipPath>
       <g class="label-content" transform="translate(${options.offsetX} ${options.offsetY})"><g clip-path="url(#${clipId})">
         ${
           artwork
-            ? isCard
-              ? `<g transform="translate(${width / 2} ${height / 2}) rotate(${rotateCard ? 90 : 0})"><image href="${escapeXml(artwork.image)}" x="${-cardWidth / 2}" y="${-cardHeight / 2}" width="${cardWidth}" height="${cardHeight}" preserveAspectRatio="xMidYMid meet" /></g>`
-              : `<image href="${escapeXml(artwork.image)}" x="${imageX}" y="${imageY}" width="${imageSize}" height="${imageSize}" preserveAspectRatio="xMidYMid meet" />
-        ${options.names ? `<text x="${width / 2}" y="${height - inset - 0.5}" text-anchor="middle" font-family="sans-serif" font-size="${Math.min(3, (width - 2 * inset) / (name.length * 0.62))}" font-weight="600" fill="#24382e">${escapeXml(name)}</text>` : ""}`
+            ? `${imageMarkup}${options.names && !isCard ? `<text x="${width / 2}" y="${height - inset - 0.5}" text-anchor="middle" font-family="sans-serif" font-size="${Math.min(3, (width - 2 * inset) / (name.length * 0.62))}" font-weight="600" fill="#24382e">${escapeXml(name)}</text>` : ""}`
             : `<text class="screen-only empty-slot" x="${width / 2}" y="${height / 2 + 1.5}" text-anchor="middle" font-size="5" fill="#bcc5be">+</text>`
         }
       </g></g>

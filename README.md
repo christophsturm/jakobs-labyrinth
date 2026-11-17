@@ -1,8 +1,8 @@
 # Jakob's Maze Printer
 
 A small browser tool for creating and printing letter puzzles, plus a separate
-dice roller and a Pokémon label printer. Development uses Vite and TypeScript;
-the production build produces three self-contained HTML pages.
+dice roller and a local-only Pokémon label printer. Development uses Vite and
+TypeScript; the public production build produces two self-contained HTML pages.
 
 The source files live in `src/`. `src/index.html` is the printer entry point and
 `src/dice/index.html` is the dice tool entry point, and `src/pokemon/index.html`
@@ -58,12 +58,23 @@ The distributable pages are:
 ```txt
 dist/index.html
 dist/dice/index.html
-dist/pokemon/index.html
 ```
 
 Each page contains its own scripts and styles without external build assets.
-The Pokémon page also embeds all 151 Pokémon images and 58 card images and can
-be used offline.
+GitHub Pages deploys only `dist/`. The Pokémon page and its navigation link are
+excluded from this public build.
+
+For a local build including the Pokémon label printer:
+
+```sh
+pnpm build:local
+pnpm preview:local
+```
+
+This produces a separate `dist-local/` directory, including
+`dist-local/pokemon/index.html`. The Pokémon page embeds all 151 Pokémon images
+and 58 card images and can be used offline. This local output is never included
+in the GitHub Pages artifact. `pnpm dev` also continues to serve all three apps.
 
 ## Usage
 
@@ -130,6 +141,13 @@ sizing can be disabled to enter dimensions manually.
   and horizontal/vertical 100 mm rulers on plain paper.
 - Upload PNG, JPEG or WebP images (up to 12 MB each). Uploads stay local; the
   current layout and uploads last only for the current browser session.
+  Own photos use the full rectangular area inside the label's print padding,
+  preserving their aspect ratio. By default, the entire photo remains visible.
+  Each photo is automatically rotated by 90° if that lets it fit larger; this
+  adapts when the label format changes. The upload controls can instead preserve
+  the original orientation, rotate manually, or fill the area with a centre crop.
+  These settings apply to all uploaded pictures in both the
+  preview and printout; Pokémon artwork and trading cards keep their layout.
 - Use the browser print dialog to print or save as PDF. Select **A4, portrait,
   100% / actual size, single-sided, and no headers or footers**. Disable scale-to-fit
   under Paper Handling; use normal A4 rather than borderless enlargement. When

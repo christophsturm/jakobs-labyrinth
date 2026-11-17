@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
+    "build:local": "vite build --mode private",
     "preview": "vite preview --host 127.0.0.1",
+    "preview:local": "vite preview --mode private --host 127.0.0.1",
     "typecheck": "tsgo --noEmit",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",

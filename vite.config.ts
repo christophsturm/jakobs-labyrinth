@@ -84,27 +84,42 @@ function singleFileHtml(): Plugin {
   };
 }
 
-export default defineConfig({
-  base: "./",
-  root: "src",
-  build: {
-    outDir: "../dist",
-    emptyOutDir: true,
-    sourcemap: false,
-    cssCodeSplit: false,
-    assetsInlineLimit: Number.MAX_SAFE_INTEGER,
-    modulePreload: false,
-    rollupOptions: {
-      input: {
-        printer: fileURLToPath(new URL("./src/index.html", import.meta.url)),
-        dice: fileURLToPath(new URL("./src/dice/index.html", import.meta.url)),
-        pokemon: fileURLToPath(new URL("./src/pokemon/index.html", import.meta.url)),
+function publicPagesOnly(): Plugin {
+  return {
+    name: "public-pages-only",
+    apply: "build",
+    transformIndexHtml(html) {
+      return html.replace(/<a\b[^>]*\bdata-local-only\b[^>]*>[\s\S]*?<\/a>/g, "");
+    },
+  };
+}
+
+export default defineConfig(({ mode }) => {
+  const includeLocalTools = mode === "private";
+  return {
+    base: "./",
+    root: "src",
+    build: {
+      outDir: includeLocalTools ? "../dist-local" : "../dist",
+      emptyOutDir: true,
+      sourcemap: false,
+      cssCodeSplit: false,
+      assetsInlineLimit: Number.MAX_SAFE_INTEGER,
+      modulePreload: false,
+      rollupOptions: {
+        input: {
+          printer: fileURLToPath(new URL("./src/index.html", import.meta.url)),
+          dice: fileURLToPath(new URL("./src/dice/index.html", import.meta.url)),
+          ...(includeLocalTools
+            ? { pokemon: fileURLToPath(new URL("./src/pokemon/index.html", import.meta.url)) }
+            : {}),
+        },
       },
     },
-  },
-  plugins: [singleFileHtml()],
-  test: {
-    environment: "node",
-    include: ["**/*.test.ts"],
-  },
+    plugins: [...(includeLocalTools ? [] : [publicPagesOnly()]), singleFileHtml()],
+    test: {
+      environment: "node",
+      include: ["**/*.test.ts"],
+    },
+  };
 });

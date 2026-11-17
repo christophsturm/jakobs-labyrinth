@@ -423,6 +423,13 @@
         gap: 10px;
         margin-top: 12px;
       }
+      .upload-settings {
+        display: grid;
+        gap: 12px;
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid var(--line);
+      }
       .custom-format button {
         font-size: 0.75rem;
       }
@@ -881,6 +888,27 @@
               tabindex="-1"
               aria-label="Eigene Bilder auswählen"
             />
+            <div id="upload-settings" class="upload-settings" hidden>
+              <label class="field-label" for="upload-fit">Eigene Fotos einpassen</label>
+              <select id="upload-fit">
+                <option value="contain">Ganzes Foto – so groß wie möglich</option>
+                <option value="cover">Etikett füllen – mit Beschnitt</option>
+              </select>
+              <label class="field-label" for="upload-rotation">Fotos drehen</label>
+              <select id="upload-rotation">
+                <option value="auto">Automatisch – größtmöglich einpassen</option>
+                <option value="0">Originalausrichtung</option>
+                <option value="90">90° nach rechts</option>
+                <option value="180">180°</option>
+                <option value="270">90° nach links</option>
+              </select>
+              <p class="fine-print">
+                Automatisch wird jedes Foto bei Bedarf um 90° gedreht, damit es größer aufs Etikett
+                passt. Das Seitenverhältnis bleibt erhalten. Die Einstellungen gelten für alle
+                eigenen Bilder. „Etikett füllen“ nutzt die ganze Fläche innerhalb des Druckabstands
+                und schneidet überstehende Bildränder ab.
+              </p>
+            </div>
           </section>
           <section class="tool-panel" aria-labelledby="format-heading">
             <div class="section-heading">
